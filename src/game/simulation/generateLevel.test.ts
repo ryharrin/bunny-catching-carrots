@@ -25,8 +25,8 @@ describe('generateLevel', () => {
     for (const platform of level.platforms) {
       const lift = level.groundTop - platform.y;
 
-      expect(lift).toBeGreaterThanOrEqual(76);
-      expect(lift).toBeLessThanOrEqual(119);
+      expect(lift).toBeGreaterThanOrEqual(120);
+      expect(lift).toBeLessThanOrEqual(163);
     }
   });
 });

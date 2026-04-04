@@ -56,6 +56,7 @@ export function createTextures(scene: Phaser.Scene): void {
   drawBunnyFrame(scene, 'bunny-run-0', -2, 1, false);
   drawBunnyFrame(scene, 'bunny-run-1', 2, -1, false);
   drawBunnyFrame(scene, 'bunny-jump-0', 0, -2, false);
+  drawBunnyDuckFrame(scene, 'bunny-duck-0');
   drawBunnyFrame(scene, 'bunny-finish-0', -1, 0, true);
   drawBunnyFrame(scene, 'bunny-finish-1', 1, 0, true);
 
@@ -113,4 +114,41 @@ export function createTextures(scene: Phaser.Scene): void {
   finish.fillRect(28, 40, 38, 10);
   finish.generateTexture('finish-flag', 96, 128);
   finish.destroy();
+}
+
+function drawBunnyDuckFrame(scene: Phaser.Scene, key: string): void {
+  const graphics = scene.make.graphics();
+
+  graphics.fillStyle(0x2f4c7d);
+  graphics.fillRect(0, 0, 48, 64);
+
+  graphics.fillStyle(0xffffff);
+  graphics.fillRect(12, 28, 26, 18);
+  graphics.fillRect(22, 16, 14, 14);
+  graphics.fillRect(24, 6, 6, 14);
+  graphics.fillRect(18, 10, 5, 10);
+  graphics.fillStyle(0xffb6c1);
+  graphics.fillRect(25, 9, 2, 8);
+  graphics.fillRect(19, 12, 2, 6);
+
+  graphics.fillStyle(0x1d1f33);
+  graphics.fillRect(31, 21, 3, 3);
+
+  graphics.fillStyle(0xff7b5b);
+  graphics.fillRect(35, 26, 4, 3);
+
+  graphics.fillStyle(0xe7e0d7);
+  graphics.fillRect(17, 42, 17, 6);
+
+  graphics.fillStyle(0x4b78bd);
+  graphics.fillRect(16, 34, 18, 10);
+  graphics.fillRect(14, 44, 10, 8);
+  graphics.fillRect(26, 44, 10, 8);
+
+  graphics.fillStyle(0xffffff);
+  graphics.fillRect(13, 50, 9, 5);
+  graphics.fillRect(29, 50, 9, 5);
+
+  graphics.generateTexture(key, 48, 64);
+  graphics.destroy();
 }

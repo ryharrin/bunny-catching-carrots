@@ -34,7 +34,7 @@ const GROUND_TOP = 596;
 const GROUND_HEIGHT = 124;
 const CHUNK_WIDTH = 480;
 const FINISH_OFFSET = 260;
-const PLATFORM_MIN_LIFT = 76;
+const PLATFORM_MIN_LIFT = 120;
 const PLATFORM_LIFT_VARIATION = 44;
 
 function createRng(seed: number): () => number {

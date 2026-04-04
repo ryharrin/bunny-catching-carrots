@@ -13,8 +13,11 @@ import type { SurfaceSegment } from '../../game/simulation/generateLevel';
 import type { SceneBridge } from '../adapters/sceneBridge';
 
 const PLAYER_SPEED = 235;
-const PLAYER_JUMP_VELOCITY = -640;
+const PLAYER_JUMP_VELOCITY = -760;
 const RESULT_DELAY_MS = 1250;
+const STANDING_BODY = { width: 26, height: 42, offsetX: 12, offsetY: 20 };
+const DUCKING_BODY = { width: 26, height: 28, offsetX: 12, offsetY: 34 };
+const DUCK_SPEED_MULTIPLIER = 0.62;
 
 interface CarrotSprite extends Phaser.Physics.Arcade.Sprite {
   carrotId: string;
@@ -29,12 +32,15 @@ export class GameScene extends Phaser.Scene {
   private inputTracker = new InputFrameTracker();
   private resultAt: number | null = null;
   private pauseOverlayVisible = false;
+  private isDucking = false;
   private result?: RunResult;
   private keyboard?: {
     left: Phaser.Input.Keyboard.Key;
     leftAlt: Phaser.Input.Keyboard.Key;
     right: Phaser.Input.Keyboard.Key;
     rightAlt: Phaser.Input.Keyboard.Key;
+    down: Phaser.Input.Keyboard.Key;
+    downAlt: Phaser.Input.Keyboard.Key;
     jump: Phaser.Input.Keyboard.Key;
     jumpAlt: Phaser.Input.Keyboard.Key;
     jumpAltTwo: Phaser.Input.Keyboard.Key;
@@ -57,6 +63,7 @@ export class GameScene extends Phaser.Scene {
     this.resultAt = null;
     this.result = undefined;
     this.pauseOverlayVisible = false;
+    this.isDucking = false;
     this.carrots.clear();
 
     const { width, height, groundSegments, platforms, carrots, spawn, finishX, paletteIndex } =
@@ -99,8 +106,7 @@ export class GameScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(spawn.x, spawn.y, 'bunny-idle-0');
     this.player.setScale(1.7);
     this.player.setCollideWorldBounds(true);
-    this.player.setSize(26, 42);
-    this.player.setOffset(12, 20);
+    this.applyBodySize(STANDING_BODY);
     this.player.setDepth(4);
 
     this.physics.add.collider(this.player, groundGroup);
@@ -149,6 +155,8 @@ export class GameScene extends Phaser.Scene {
         leftAlt: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
         right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
         rightAlt: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+        down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
+        downAlt: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
         jump: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
         jumpAlt: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
         jumpAltTwo: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
@@ -191,14 +199,17 @@ export class GameScene extends Phaser.Scene {
     }
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
+    const wantsDuck = inputFrame.duck && (body.blocked.down || body.touching.down);
+    this.updateDuckState(wantsDuck);
     const move = Phaser.Math.Clamp(inputFrame.move, -1, 1);
-    this.player.setVelocityX(move * PLAYER_SPEED);
+    const speedMultiplier = this.isDucking ? DUCK_SPEED_MULTIPLIER : 1;
+    this.player.setVelocityX(move * PLAYER_SPEED * speedMultiplier);
 
     if (move !== 0) {
       this.player.setFlipX(move < 0);
     }
 
-    if (inputFrame.jumpPressed && (body.blocked.down || body.touching.down)) {
+    if (inputFrame.jumpPressed && !this.isDucking && (body.blocked.down || body.touching.down)) {
       this.player.setVelocityY(PLAYER_JUMP_VELOCITY);
     }
 
@@ -308,6 +319,7 @@ export class GameScene extends Phaser.Scene {
       return getKeyboardActionState({
         left: false,
         right: false,
+        down: false,
         jump: false,
         start: false,
         pause: false,
@@ -317,6 +329,7 @@ export class GameScene extends Phaser.Scene {
     const snapshot: KeyboardSnapshot = {
       left: this.keyboard.left.isDown || this.keyboard.leftAlt.isDown,
       right: this.keyboard.right.isDown || this.keyboard.rightAlt.isDown,
+      down: this.keyboard.down.isDown || this.keyboard.downAlt.isDown,
       jump:
         this.keyboard.jump.isDown ||
         this.keyboard.jumpAlt.isDown ||
@@ -340,6 +353,7 @@ export class GameScene extends Phaser.Scene {
       axisX: pad.axes.length > 0 ? pad.axes[0].getValue() : 0,
       left: Boolean(pad.buttons[14]?.pressed),
       right: Boolean(pad.buttons[15]?.pressed),
+      down: Boolean(pad.buttons[13]?.pressed),
       jump: Boolean(pad.buttons[0]?.pressed),
       start: Boolean(pad.buttons[9]?.pressed),
       pause: Boolean(pad.buttons[9]?.pressed),
@@ -353,6 +367,11 @@ export class GameScene extends Phaser.Scene {
 
     if (!body.blocked.down && !body.touching.down) {
       this.player.setTexture('bunny-jump-0');
+      return;
+    }
+
+    if (this.isDucking) {
+      this.player.setTexture('bunny-duck-0');
       return;
     }
 
@@ -393,6 +412,55 @@ export class GameScene extends Phaser.Scene {
       timerLabel: hud.isOvertime ? `+${overtimeSeconds}s` : `${totalSeconds}s`,
       statusLabel: hud.isOvertime ? 'Overtime' : 'Time Left',
       isOvertime: hud.isOvertime,
+    });
+  }
+
+  private applyBodySize(size: typeof STANDING_BODY): void {
+    this.player.setSize(size.width, size.height);
+    this.player.setOffset(size.offsetX, size.offsetY);
+  }
+
+  private updateDuckState(wantsDuck: boolean): void {
+    if (wantsDuck) {
+      if (!this.isDucking) {
+        this.applyBodySize(DUCKING_BODY);
+        this.isDucking = true;
+      }
+      return;
+    }
+
+    if (!this.isDucking || !this.canStandUp()) {
+      return;
+    }
+
+    this.applyBodySize(STANDING_BODY);
+    this.isDucking = false;
+  }
+
+  private canStandUp(): boolean {
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    const headroomHeight = STANDING_BODY.height - DUCKING_BODY.height;
+    const headroom = {
+      left: body.x,
+      right: body.x + body.width,
+      top: body.y - headroomHeight,
+      bottom: body.y,
+    };
+
+    const surfaces = [...this.session.level.groundSegments, ...this.session.level.platforms];
+
+    return !surfaces.some((surface) => {
+      const surfaceLeft = surface.x;
+      const surfaceRight = surface.x + surface.width;
+      const surfaceTop = surface.y;
+      const surfaceBottom = surface.y + surface.height;
+
+      return (
+        headroom.left < surfaceRight &&
+        headroom.right > surfaceLeft &&
+        headroom.top < surfaceBottom &&
+        headroom.bottom > surfaceTop
+      );
     });
   }
 
