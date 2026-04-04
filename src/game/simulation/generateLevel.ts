@@ -34,6 +34,8 @@ const GROUND_TOP = 596;
 const GROUND_HEIGHT = 124;
 const CHUNK_WIDTH = 480;
 const FINISH_OFFSET = 260;
+const PLATFORM_MIN_LIFT = 76;
+const PLATFORM_LIFT_VARIATION = 44;
 
 function createRng(seed: number): () => number {
   let value = seed >>> 0;
@@ -93,7 +95,7 @@ export function generateLevel(seed: number): LevelLayout {
         210,
         finishX - width - 120,
       );
-      const y = GROUND_TOP - 130 - Math.floor(rng() * 150);
+      const y = GROUND_TOP - PLATFORM_MIN_LIFT - Math.floor(rng() * PLATFORM_LIFT_VARIATION);
 
       platforms.push({
         id: `platform-${platforms.length + 1}`,

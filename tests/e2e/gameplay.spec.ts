@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 declare global {
   interface Window {
     __BUNNY_DEBUG__?: {
+      collectCarrots(count?: number): number;
       clearSessionHighScore(): void;
       forceFinish(): void;
       getActiveScene(): string | null;
@@ -59,11 +60,20 @@ test.describe('Bunny Catching Carrots e2e', () => {
     await expect(page.getByTestId('timer-value')).toContainText('s');
   });
 
-  test('persists the session high score after a finish-line feast', async ({ page }) => {
+  test('persists the collected run score as the session high score after finishing', async ({ page }) => {
     await page.evaluate(() => {
       window.__BUNNY_DEBUG__?.startRun();
     });
     await page.waitForFunction(() => window.__BUNNY_DEBUG__?.getActiveScene() === 'GameScene');
+
+    await page.evaluate(() => {
+      window.__BUNNY_DEBUG__?.collectCarrots(3);
+    });
+
+    const liveScore = await page.getByTestId('score-value').textContent();
+    expect(liveScore).not.toBeNull();
+    expect(Number.parseInt(liveScore ?? '0', 10)).toBeGreaterThan(0);
+    await expect(page.getByTestId('high-score-value')).toHaveText(liveScore ?? '0');
 
     await page.evaluate(() => {
       window.__BUNNY_DEBUG__?.forceFinish();
@@ -71,9 +81,10 @@ test.describe('Bunny Catching Carrots e2e', () => {
 
     await expect(page.getByTestId('results-overlay')).toBeVisible();
 
+    await expect(page.getByTestId('results-run-score')).toHaveText(liveScore ?? '0');
     const highScore = await page.getByTestId('results-high-score').textContent();
     expect(highScore).not.toBeNull();
-    expect(Number.parseInt(highScore ?? '0', 10)).toBeGreaterThan(0);
+    expect(highScore).toBe(liveScore);
 
     await page.reload();
     await page.waitForFunction(() => typeof window.__BUNNY_DEBUG__ !== 'undefined');

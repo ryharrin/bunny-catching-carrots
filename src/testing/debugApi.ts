@@ -3,6 +3,7 @@ import { SESSION_HIGH_SCORE_KEY } from '../game/storage/sessionHighScore';
 import { GameScene } from '../phaser/scenes/GameScene';
 
 interface BunnyDebugApi {
+  collectCarrots(count?: number): number;
   clearSessionHighScore(): void;
   forceFinish(): void;
   getActiveScene(): string | null;
@@ -42,6 +43,9 @@ export function installDebugApi(game: Phaser.Game): void {
   }
 
   window.__BUNNY_DEBUG__ = {
+    collectCarrots(count = 1) {
+      return getGameScene(game)?.debugCollectCarrots(count) ?? 0;
+    },
     clearSessionHighScore() {
       window.sessionStorage.removeItem(SESSION_HIGH_SCORE_KEY);
     },

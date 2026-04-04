@@ -18,4 +18,15 @@ describe('generateLevel', () => {
     expect(level.carrots.length).toBeGreaterThan(40);
     expect(level.platforms.length).toBeGreaterThan(8);
   });
+
+  it('keeps platforms within a reachable jump band above the ground', () => {
+    const level = generateLevel(11);
+
+    for (const platform of level.platforms) {
+      const lift = level.groundTop - platform.y;
+
+      expect(lift).toBeGreaterThanOrEqual(76);
+      expect(lift).toBeLessThanOrEqual(119);
+    }
+  });
 });

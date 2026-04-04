@@ -13,7 +13,7 @@ describe('GameSession', () => {
     expect(session.getHudState().score).toBe(2);
   });
 
-  it('converts remaining carrots into finish bonus when the run ends', () => {
+  it('keeps the run score intact and reports leftovers as a finish bonus', () => {
     const level = generateLevel(2);
     const session = new GameSession(level, 0);
 
@@ -21,9 +21,21 @@ describe('GameSession', () => {
 
     const outcome = session.finishRun();
 
-    expect(outcome.result.score).toBe(level.carrots.length);
+    expect(outcome.result.score).toBe(1);
     expect(outcome.result.finishBonus).toBe(level.carrots.length - 1);
     expect(outcome.remainingCarrotIds).toHaveLength(level.carrots.length - 1);
+  });
+
+  it('shows the current run as the live session high score before the run ends', () => {
+    const level = generateLevel(3);
+    const session = new GameSession(level, 4);
+
+    for (const carrot of level.carrots.slice(0, 6)) {
+      session.collectCarrot(carrot.id);
+    }
+
+    expect(session.getHudState().score).toBe(6);
+    expect(session.getHudState().highScore).toBe(6);
   });
 
   it('updates the stored high score only when a run beats the current best', () => {

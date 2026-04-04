@@ -65,10 +65,6 @@ export class GameSession {
       .map((carrot) => carrot.id)
       .filter((carrotId) => !this.collectedCarrotIds.has(carrotId));
 
-    for (const carrotId of remainingCarrotIds) {
-      this.collectedCarrotIds.add(carrotId);
-    }
-
     this.finishBonus = remainingCarrotIds.length;
     this.finished = true;
 
@@ -89,10 +85,11 @@ export class GameSession {
   getHudState(): HudState {
     const timeRemainingMs = Math.max(0, LEVEL_TARGET_MS - this.elapsedMs);
     const overtimeMs = Math.max(0, this.elapsedMs - LEVEL_TARGET_MS);
+    const score = this.getScore();
 
     return {
-      score: this.getScore(),
-      highScore: this.highScore,
+      score,
+      highScore: Math.max(this.highScore, score),
       carrotsCollected: this.collectedCarrotIds.size,
       totalCarrots: this.level.carrots.length,
       timeRemainingMs,

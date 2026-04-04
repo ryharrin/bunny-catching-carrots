@@ -13,7 +13,7 @@ import type { SurfaceSegment } from '../../game/simulation/generateLevel';
 import type { SceneBridge } from '../adapters/sceneBridge';
 
 const PLAYER_SPEED = 235;
-const PLAYER_JUMP_VELOCITY = -560;
+const PLAYER_JUMP_VELOCITY = -640;
 const RESULT_DELAY_MS = 1250;
 
 interface CarrotSprite extends Phaser.Physics.Arcade.Sprite {
@@ -286,6 +286,21 @@ export class GameScene extends Phaser.Scene {
 
   debugForceFinish(): void {
     this.handleFinish();
+  }
+
+  debugCollectCarrots(count = 1): number {
+    let collected = 0;
+
+    for (const carrotSprite of this.carrots.values()) {
+      this.collectCarrot(carrotSprite);
+      collected += 1;
+
+      if (collected >= count) {
+        break;
+      }
+    }
+
+    return collected;
   }
 
   private getKeyboardState(): ReturnType<typeof getKeyboardActionState> {
