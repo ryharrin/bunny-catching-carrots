@@ -22,9 +22,12 @@ A browser-based 2D side-scrolling bunny platformer built with Phaser, TypeScript
 ## Local Development
 
 ```bash
+nvm use
 npm install
 npm run dev
 ```
+
+This repo targets Node 24. Use the checked-in [.nvmrc](/Users/rharrington/src/personal/bunny-catching-carrots/.nvmrc) or another equivalent version manager setting before installing dependencies.
 
 ## Verification
 
