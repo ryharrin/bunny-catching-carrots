@@ -58,7 +58,7 @@ export class HudController {
         <section class="overlay" aria-label="Start menu" data-testid="menu-overlay">
           <div class="overlay__backdrop"></div>
           <article class="overlay__panel">
-            <p class="overlay__eyebrow">Retro Bunny Run</p>
+            <p class="overlay__eyebrow">A Fredda Rose Game Studio Production</p>
             <h1 class="overlay__title">Catch every carrot you can.</h1>
             <p class="overlay__body">
               Each run is a one-minute side-scrolling sprint with safe ground, sky platforms, and a
