@@ -284,6 +284,10 @@ export class GameScene extends Phaser.Scene {
     this.player.setVelocity(0, 0);
   }
 
+  debugForceFinish(): void {
+    this.handleFinish();
+  }
+
   private getKeyboardState(): ReturnType<typeof getKeyboardActionState> {
     if (!this.keyboard) {
       return getKeyboardActionState({

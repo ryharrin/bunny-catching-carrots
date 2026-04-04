@@ -31,9 +31,18 @@ npm run dev
 ```bash
 npm run lint
 npm test
+npm run test:integration
+npx playwright install chromium
+npm run test:e2e
 npm run build
 ```
 
 ## Deployment
 
 The site is built and deployed to GitHub Pages from GitHub Actions whenever `main` is updated. The Vite base path is derived automatically from the `GITHUB_REPOSITORY` environment variable inside CI.
+
+## Test Layers
+
+- `npm test`: unit and integration coverage through Vitest
+- `npm run test:integration`: integration-focused bridge and UI coverage
+- `npm run test:e2e`: Playwright browser coverage against the built preview server

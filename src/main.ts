@@ -1,12 +1,13 @@
 import Phaser from 'phaser';
 import './style.css';
 import { GameFlow } from './game/simulation/gameSession';
-import { SessionHighScoreStore } from './game/storage/sessionHighScore';
+import { SESSION_HIGH_SCORE_KEY, SessionHighScoreStore } from './game/storage/sessionHighScore';
 import { SceneBridge } from './phaser/adapters/sceneBridge';
 import { BootScene } from './phaser/scenes/BootScene';
 import { GameScene } from './phaser/scenes/GameScene';
 import { MenuScene } from './phaser/scenes/MenuScene';
 import { ResultScene } from './phaser/scenes/ResultScene';
+import { installDebugApi } from './testing/debugApi';
 import { HudController } from './ui/hud';
 
 const app = document.querySelector<HTMLDivElement>('#app');
@@ -37,7 +38,7 @@ if (!gameRoot || !hudRoot || !overlayRoot) {
 }
 
 const bridge = new SceneBridge();
-const highScoreStore = new SessionHighScoreStore('bunny-catching-carrots:session-high-score');
+const highScoreStore = new SessionHighScoreStore(SESSION_HIGH_SCORE_KEY);
 const flow = new GameFlow(highScoreStore);
 
 new HudController(hudRoot, overlayRoot, bridge);
@@ -69,6 +70,8 @@ const game = new Phaser.Game({
     new ResultScene(bridge),
   ],
 });
+
+installDebugApi(game);
 
 window.addEventListener('beforeunload', () => {
   game.destroy(true);

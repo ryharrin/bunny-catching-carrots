@@ -23,24 +23,24 @@ export class HudController {
 
   private renderHud(snapshot: HudSnapshot): void {
     this.hudRoot.innerHTML = `
-      <section class="hud" aria-label="Game stats">
+      <section class="hud" aria-label="Game stats" data-testid="hud">
         <div class="hud__row">
           <span class="hud__label">Score</span>
-          <span class="hud__value hud__value--score">${snapshot.score}</span>
+          <span class="hud__value hud__value--score" data-testid="score-value">${snapshot.score}</span>
         </div>
         <div class="hud__row">
           <span class="hud__label">High Score</span>
-          <span class="hud__value">${snapshot.highScore}</span>
+          <span class="hud__value" data-testid="high-score-value">${snapshot.highScore}</span>
         </div>
         <div class="hud__row">
           <span class="hud__label">Carrots</span>
-          <span class="hud__value">${snapshot.carrotsCollected}/${snapshot.totalCarrots}</span>
+          <span class="hud__value" data-testid="carrots-value">${snapshot.carrotsCollected}/${snapshot.totalCarrots}</span>
         </div>
         <div class="hud__row">
           <span class="hud__label">Timer</span>
-          <span class="hud__value">${snapshot.timerLabel}</span>
+          <span class="hud__value" data-testid="timer-value">${snapshot.timerLabel}</span>
         </div>
-        <div class="hud__status ${snapshot.isOvertime ? 'hud__status--overtime' : ''}">
+        <div class="hud__status ${snapshot.isOvertime ? 'hud__status--overtime' : ''}" data-testid="timer-status">
           ${snapshot.statusLabel}
         </div>
       </section>
@@ -55,7 +55,7 @@ export class HudController {
 
     if (state.type === 'menu') {
       this.overlayRoot.innerHTML = `
-        <section class="overlay" aria-label="Start menu">
+        <section class="overlay" aria-label="Start menu" data-testid="menu-overlay">
           <div class="overlay__backdrop"></div>
           <article class="overlay__panel">
             <p class="overlay__eyebrow">Retro Bunny Run</p>
@@ -67,7 +67,7 @@ export class HudController {
             <div class="overlay__stats">
               <div class="overlay__stat">
                 <span class="overlay__stat-label">Session High Score</span>
-                <span class="overlay__stat-value">${state.highScore}</span>
+                <span class="overlay__stat-value" data-testid="menu-high-score">${state.highScore}</span>
               </div>
             </div>
             <div class="overlay__controls">
@@ -82,7 +82,7 @@ export class HudController {
 
     if (state.type === 'pause') {
       this.overlayRoot.innerHTML = `
-        <section class="overlay" aria-label="Pause menu">
+        <section class="overlay" aria-label="Pause menu" data-testid="pause-overlay">
           <div class="overlay__backdrop"></div>
           <article class="overlay__panel">
             <p class="overlay__eyebrow">Paused</p>
@@ -98,7 +98,7 @@ export class HudController {
     }
 
     this.overlayRoot.innerHTML = `
-      <section class="overlay" aria-label="Results">
+      <section class="overlay" aria-label="Results" data-testid="results-overlay">
         <div class="overlay__backdrop"></div>
         <article class="overlay__panel">
           <p class="overlay__eyebrow">Finish Line Feast</p>
@@ -110,15 +110,15 @@ export class HudController {
           <div class="overlay__stats">
             <div class="overlay__stat">
               <span class="overlay__stat-label">Run Score</span>
-              <span class="overlay__stat-value">${state.score}</span>
+              <span class="overlay__stat-value" data-testid="results-run-score">${state.score}</span>
             </div>
             <div class="overlay__stat">
               <span class="overlay__stat-label">Finish Feast Bonus</span>
-              <span class="overlay__stat-value">+${state.finishBonus}</span>
+              <span class="overlay__stat-value" data-testid="results-finish-bonus">+${state.finishBonus}</span>
             </div>
             <div class="overlay__stat">
               <span class="overlay__stat-label">Session High Score</span>
-              <span class="overlay__stat-value">${state.highScore}</span>
+              <span class="overlay__stat-value" data-testid="results-high-score">${state.highScore}</span>
             </div>
           </div>
           <div class="overlay__controls">

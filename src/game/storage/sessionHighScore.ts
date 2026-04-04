@@ -1,3 +1,5 @@
+export const SESSION_HIGH_SCORE_KEY = 'bunny-catching-carrots:session-high-score';
+
 export interface HighScoreStore {
   load(): number;
   save(score: number): void;
