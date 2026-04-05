@@ -67,4 +67,19 @@ describe('HudController integration', () => {
 
     expect(overlayRoot.innerHTML).toBe('');
   });
+
+  it('sends a restart overlay action from the pause menu button', () => {
+    let receivedAction: string | null = null;
+    bridge.bindOverlayActionListener((action) => {
+      receivedAction = action;
+    });
+
+    bridge.showOverlay({
+      type: 'pause',
+    });
+
+    overlayRoot.querySelector<HTMLButtonElement>('[data-testid="pause-restart-button"]')?.click();
+
+    expect(receivedAction).toBe('restart_level');
+  });
 });

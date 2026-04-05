@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { getActivePad } from '../../game/input/gamepad';
+import { isBrowserGamepadConfirmPressed } from '../../game/input/gamepad';
+import { isWebHidConfirmPressed } from '../../game/input/webhid';
 import type { RunResult } from '../../game/simulation/gameSession';
 import type { SceneBridge } from '../adapters/sceneBridge';
 
@@ -43,8 +44,9 @@ export class ResultScene extends Phaser.Scene {
   }
 
   update(): void {
-    const pad = getActivePad(this.input.gamepad);
-    const isPressed = Boolean(this.enterKey?.isDown || pad?.buttons[0]?.pressed || pad?.buttons[9]?.pressed);
+    const isPressed = Boolean(
+      this.enterKey?.isDown || isBrowserGamepadConfirmPressed() || isWebHidConfirmPressed(),
+    );
 
     if (isPressed && !this.restartPressed) {
       this.restartPressed = true;

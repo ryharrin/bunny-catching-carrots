@@ -7,16 +7,20 @@ describe('bindings', () => {
       getKeyboardActionState({
         left: false,
         right: true,
+        run: true,
         down: true,
         jump: true,
         start: false,
+        restart: false,
         pause: false,
       }),
     ).toEqual({
       move: 1,
+      run: true,
       duck: true,
       jump: true,
       start: false,
+      restart: false,
       pause: false,
     });
   });
@@ -27,16 +31,20 @@ describe('bindings', () => {
         axisX: 0.05,
         left: true,
         right: false,
+        run: true,
         down: true,
         jump: false,
         start: false,
+        restart: false,
         pause: false,
       }),
     ).toEqual({
       move: -1,
+      run: true,
       duck: true,
       jump: false,
       start: false,
+      restart: false,
       pause: false,
     });
   });
@@ -44,34 +52,40 @@ describe('bindings', () => {
   it('merges the strongest movement state and button presses', () => {
     expect(
       mergeActionStates(
-        { move: -1, duck: false, jump: false, start: false, pause: false },
-        { move: 0.6, duck: true, jump: true, start: false, pause: true },
+        { move: -1, run: false, duck: false, jump: false, start: false, restart: false, pause: false },
+        { move: 0.6, run: true, duck: true, jump: true, start: false, restart: true, pause: true },
       ),
     ).toEqual({
       move: -1,
+      run: true,
       duck: true,
       jump: true,
       start: false,
+      restart: true,
       pause: true,
     });
   });
 
-  it('emits edge-triggered presses for jump and pause', () => {
+  it('emits edge-triggered presses for jump, restart, and pause', () => {
     const tracker = new InputFrameTracker();
 
-    expect(tracker.next({ move: 0, duck: true, jump: true, start: false, pause: false })).toEqual({
+    expect(tracker.next({ move: 0, run: true, duck: true, jump: true, start: false, restart: false, pause: false })).toEqual({
       move: 0,
+      run: true,
       duck: true,
       jumpPressed: true,
       startPressed: false,
+      restartPressed: false,
       pausePressed: false,
     });
 
-    expect(tracker.next({ move: 0, duck: false, jump: true, start: false, pause: true })).toEqual({
+    expect(tracker.next({ move: 0, run: false, duck: false, jump: true, start: false, restart: true, pause: true })).toEqual({
       move: 0,
+      run: false,
       duck: false,
       jumpPressed: false,
       startPressed: false,
+      restartPressed: true,
       pausePressed: true,
     });
   });

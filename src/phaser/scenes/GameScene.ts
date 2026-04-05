@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { BUNNY_RUN_ANIMATION_KEY } from '../boot/createBunnyRunAnimation';
 import {
   InputFrameTracker,
   getGamepadActionState,
@@ -7,7 +8,8 @@ import {
   type GamepadSnapshot,
   type KeyboardSnapshot,
 } from '../../game/input/bindings';
-import { getActivePad } from '../../game/input/gamepad';
+import { getBrowserGamepadSnapshot } from '../../game/input/gamepad';
+import { getWebHidSnapshot } from '../../game/input/webhid';
 import type { GameFlow, GameSession } from '../../game/simulation/gameSession';
 import type { RunResult } from '../../game/simulation/gameSession';
 import type {
@@ -18,6 +20,7 @@ import type {
 import type { SceneBridge } from '../adapters/sceneBridge';
 
 const PLAYER_SPEED = 265;
+const PLAYER_RUN_SPEED = 365;
 const PLAYER_JUMP_VELOCITY = -760;
 const RESULT_DELAY_MS = 1250;
 const STANDING_BODY = { width: 26, height: 42, offsetX: 12, offsetY: 20 };
@@ -47,12 +50,15 @@ export class GameScene extends Phaser.Scene {
     leftAlt: Phaser.Input.Keyboard.Key;
     right: Phaser.Input.Keyboard.Key;
     rightAlt: Phaser.Input.Keyboard.Key;
+    run: Phaser.Input.Keyboard.Key;
+    runAlt: Phaser.Input.Keyboard.Key;
     down: Phaser.Input.Keyboard.Key;
     downAlt: Phaser.Input.Keyboard.Key;
     jump: Phaser.Input.Keyboard.Key;
     jumpAlt: Phaser.Input.Keyboard.Key;
     jumpAltTwo: Phaser.Input.Keyboard.Key;
     jumpAltThree: Phaser.Input.Keyboard.Key;
+    restart: Phaser.Input.Keyboard.Key;
     pause: Phaser.Input.Keyboard.Key;
   };
   private hillBack?: Phaser.GameObjects.TileSprite;
@@ -160,15 +166,28 @@ export class GameScene extends Phaser.Scene {
         leftAlt: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
         right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
         rightAlt: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+        run: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
+        runAlt: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X),
         down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
         downAlt: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
         jump: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
         jumpAlt: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
         jumpAltTwo: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
         jumpAltThree: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z),
+        restart: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R),
         pause: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC),
       };
     }
+
+    this.bridge.bindOverlayActionListener((action) => {
+      if (action === 'restart_level') {
+        this.restartLevel();
+      }
+    });
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.bridge.bindOverlayActionListener(undefined);
+    });
 
     this.bridge.showOverlay({ type: 'hidden' });
     this.publishHud();
@@ -179,6 +198,10 @@ export class GameScene extends Phaser.Scene {
       const pauseFrame = this.inputTracker.next(
         mergeActionStates(this.getKeyboardState(), this.getGamepadState()),
       );
+      if (pauseFrame.restartPressed) {
+        this.restartLevel();
+        return;
+      }
       if (pauseFrame.pausePressed) {
         this.togglePause();
       }
@@ -206,6 +229,7 @@ export class GameScene extends Phaser.Scene {
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     const wantsSlide = inputFrame.duck && (body.blocked.down || body.touching.down);
     const move = Phaser.Math.Clamp(inputFrame.move, -1, 1);
+    const moveSpeed = inputFrame.run ? PLAYER_RUN_SPEED : PLAYER_SPEED;
 
     if (move !== 0) {
       this.player.setFlipX(move < 0);
@@ -217,7 +241,7 @@ export class GameScene extends Phaser.Scene {
     if (this.isSliding) {
       this.player.setVelocityX(this.slideDirection * SLIDE_SPEED);
     } else {
-      this.player.setVelocityX(move * PLAYER_SPEED);
+      this.player.setVelocityX(move * moveSpeed);
     }
 
     if (inputFrame.jumpPressed && !this.isSliding && (body.blocked.down || body.touching.down)) {
@@ -409,9 +433,11 @@ export class GameScene extends Phaser.Scene {
       return getKeyboardActionState({
         left: false,
         right: false,
+        run: false,
         down: false,
         jump: false,
         start: false,
+        restart: false,
         pause: false,
       });
     }
@@ -419,6 +445,7 @@ export class GameScene extends Phaser.Scene {
     const snapshot: KeyboardSnapshot = {
       left: this.keyboard.left.isDown || this.keyboard.leftAlt.isDown,
       right: this.keyboard.right.isDown || this.keyboard.rightAlt.isDown,
+      run: this.keyboard.run.isDown || this.keyboard.runAlt.isDown,
       down: this.keyboard.down.isDown || this.keyboard.downAlt.isDown,
       jump:
         this.keyboard.jump.isDown ||
@@ -426,6 +453,7 @@ export class GameScene extends Phaser.Scene {
         this.keyboard.jumpAltTwo.isDown ||
         this.keyboard.jumpAltThree.isDown,
       start: false,
+      restart: this.keyboard.restart.isDown,
       pause: this.keyboard.pause.isDown,
     };
 
@@ -433,43 +461,40 @@ export class GameScene extends Phaser.Scene {
   }
 
   private getGamepadState(): ReturnType<typeof getGamepadActionState> {
-    const pad = getActivePad(this.input.gamepad);
+    const browserSnapshot: GamepadSnapshot | null = getBrowserGamepadSnapshot();
+    const webHidSnapshot: GamepadSnapshot | null = getWebHidSnapshot();
 
-    if (!pad) {
-      return getGamepadActionState(null);
-    }
-
-    const snapshot: GamepadSnapshot = {
-      axisX: pad.axes.length > 0 ? pad.axes[0].getValue() : 0,
-      left: Boolean(pad.buttons[14]?.pressed),
-      right: Boolean(pad.buttons[15]?.pressed),
-      down: Boolean(pad.buttons[13]?.pressed),
-      jump: Boolean(pad.buttons[0]?.pressed),
-      start: Boolean(pad.buttons[9]?.pressed),
-      pause: Boolean(pad.buttons[9]?.pressed),
-    };
-
-    return getGamepadActionState(snapshot);
+    return mergeActionStates(
+      getGamepadActionState(browserSnapshot),
+      getGamepadActionState(webHidSnapshot),
+    );
   }
 
   private animatePlayer(): void {
     const body = this.player.body as Phaser.Physics.Arcade.Body;
 
     if (!body.blocked.down && !body.touching.down) {
+      this.player.anims.stop();
+      this.player.anims.timeScale = 1;
       this.player.setTexture('bunny-jump-0');
       return;
     }
 
     if (this.isSliding) {
+      this.player.anims.stop();
+      this.player.anims.timeScale = 1;
       this.player.setTexture('bunny-slide-0');
       return;
     }
 
     if (Math.abs(body.velocity.x) > 12) {
-      this.player.setTexture(Math.floor(this.time.now / 140) % 2 === 0 ? 'bunny-run-0' : 'bunny-run-1');
+      this.player.anims.timeScale = Math.max(1, Math.abs(body.velocity.x) / PLAYER_SPEED);
+      this.player.anims.play(BUNNY_RUN_ANIMATION_KEY, true);
       return;
     }
 
+    this.player.anims.stop();
+    this.player.anims.timeScale = 1;
     this.player.setTexture('bunny-idle-0');
   }
 
@@ -564,5 +589,12 @@ export class GameScene extends Phaser.Scene {
     this.pauseOverlayVisible = !this.pauseOverlayVisible;
     this.physics.world.isPaused = this.pauseOverlayVisible;
     this.bridge.showOverlay(this.pauseOverlayVisible ? { type: 'pause' } : { type: 'hidden' });
+  }
+
+  private restartLevel(): void {
+    this.physics.world.isPaused = false;
+    this.pauseOverlayVisible = false;
+    this.bridge.showOverlay({ type: 'hidden' });
+    this.scene.restart();
   }
 }

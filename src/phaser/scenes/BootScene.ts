@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { createBunnyRunAnimation } from '../boot/createBunnyRunAnimation';
 import { createTextures } from '../boot/createTextures';
 import { generatedAssetManifest } from '../boot/generatedAssetManifest';
 import type { SceneBridge } from '../adapters/sceneBridge';
@@ -19,6 +20,7 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     createTextures(this);
+    createBunnyRunAnimation(this);
     this.bridge.showOverlay({ type: 'hidden' });
     this.scene.start('MenuScene');
   }

@@ -27,9 +27,12 @@ export type OverlayState =
       elapsedLabel: string;
     };
 
+export type OverlayAction = 'restart_level';
+
 export class SceneBridge {
   private hudListener?: (snapshot: HudSnapshot) => void;
   private overlayListener?: (state: OverlayState) => void;
+  private overlayActionListener?: (action: OverlayAction) => void;
 
   bindHudListener(listener: (snapshot: HudSnapshot) => void): void {
     this.hudListener = listener;
@@ -39,11 +42,19 @@ export class SceneBridge {
     this.overlayListener = listener;
   }
 
+  bindOverlayActionListener(listener: ((action: OverlayAction) => void) | undefined): void {
+    this.overlayActionListener = listener;
+  }
+
   updateHud(snapshot: HudSnapshot): void {
     this.hudListener?.(snapshot);
   }
 
   showOverlay(state: OverlayState): void {
     this.overlayListener?.(state);
+  }
+
+  sendOverlayAction(action: OverlayAction): void {
+    this.overlayActionListener?.(action);
   }
 }
