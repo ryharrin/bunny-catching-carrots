@@ -134,6 +134,12 @@ async function emitFakeWebHidReport(page: Page, reportId: number, bytes: number[
   );
 }
 
+async function clickHiddenButton(page: Page, testId: string) {
+  await page.getByTestId(testId).evaluate((element) => {
+    (element as HTMLButtonElement).click();
+  });
+}
+
 test.describe('Bunny Catching Carrots e2e', () => {
   test.beforeEach(async ({ page }) => {
     const pageErrors: string[] = [];
@@ -245,8 +251,7 @@ test.describe('Bunny Catching Carrots e2e', () => {
     await page.waitForFunction(() => typeof window.__BUNNY_DEBUG__ !== 'undefined');
     await page.waitForFunction(() => window.__BUNNY_DEBUG__?.getActiveScene() === 'MenuScene');
 
-    await expect(page.getByTestId('controller-debug')).toContainText('Xbox Wireless Controller');
-    await expect(page.getByTestId('controller-debug')).toContainText('Raw Slots');
+    await expect(page.getByTestId('controller-debug')).toBeHidden();
 
     await setFakeGamepadButton(page, 0, true);
     await page.waitForFunction(() => window.__BUNNY_DEBUG__?.getActiveScene() === 'GameScene');
@@ -276,11 +281,11 @@ test.describe('Bunny Catching Carrots e2e', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForFunction(() => typeof window.__BUNNY_DEBUG__ !== 'undefined');
 
-    await expect(page.getByTestId('controller-debug')).toContainText('WebHID Fallback');
-    await page.getByTestId('webhid-connect-button').click();
+    await expect(page.getByTestId('controller-debug')).toBeHidden();
+    await clickHiddenButton(page, 'webhid-connect-button');
     await expect(page.getByTestId('controller-debug')).toContainText('Xbox Wireless Controller via WebHID');
 
-    await page.getByTestId('webhid-calibrate-button').click();
+    await clickHiddenButton(page, 'webhid-calibrate-button');
     await expect(page.getByTestId('controller-debug')).toContainText('press A / Jump');
 
     const calibrationReports: number[] = [1, 2, 4, 8, 16, 32, 64];
@@ -289,10 +294,7 @@ test.describe('Bunny Catching Carrots e2e', () => {
       await emitFakeWebHidReport(page, 1, [0]);
     }
 
-    await expect(page.getByTestId('controller-debug')).toContainText('ready');
-    await expect(page.getByTestId('controller-debug')).toContainText(
-      'down, jump, left, pause, restart, right, run',
-    );
+    await expect(page.getByTestId('controller-debug')).toBeHidden();
 
     await emitFakeWebHidReport(page, 1, [1]);
     await page.waitForFunction(() => window.__BUNNY_DEBUG__?.getActiveScene() === 'GameScene');

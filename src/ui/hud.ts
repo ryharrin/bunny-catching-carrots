@@ -26,6 +26,7 @@ export class HudController {
     this.controllerDebugRoot.className = 'controller-debug';
     this.controllerDebugRoot.setAttribute('aria-live', 'polite');
     this.controllerDebugRoot.setAttribute('data-testid', 'controller-debug');
+    this.controllerDebugRoot.hidden = true;
     const stageRoot = this.overlayRoot.parentElement ?? this.hudRoot.parentElement;
     stageRoot?.appendChild(this.controllerDebugRoot);
 
@@ -149,6 +150,7 @@ export class HudController {
 
     this.lastControllerDebugMarkup = markup;
     this.controllerDebugRoot.innerHTML = markup;
+    this.controllerDebugRoot.hidden = true;
 
     const connectButton = this.controllerDebugRoot.querySelector<HTMLButtonElement>('[data-testid="webhid-connect-button"]');
     connectButton?.addEventListener('click', () => {

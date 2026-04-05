@@ -335,6 +335,93 @@ function drawGroundTexture(scene: Phaser.Scene): void {
   ground.destroy();
 }
 
+function drawGroundStripTexture(scene: Phaser.Scene): void {
+  const ground = scene.make.graphics();
+
+  fillRects(ground, 0x4f7c33, [[0, 0, 256, 2]]);
+  fillRects(ground, 0x74bb4f, [[0, 2, 256, 7]]);
+  fillRects(ground, 0xa7db6f, [
+    [4, 3, 12, 2],
+    [22, 4, 10, 2],
+    [41, 3, 14, 2],
+    [63, 4, 11, 2],
+    [82, 3, 15, 2],
+    [107, 4, 10, 2],
+    [126, 3, 12, 2],
+    [145, 4, 11, 2],
+    [166, 3, 14, 2],
+    [188, 4, 10, 2],
+    [206, 3, 12, 2],
+    [225, 4, 11, 2],
+  ]);
+  fillRects(ground, 0x3b9442, [
+    [8, 7, 4, 4],
+    [18, 8, 3, 3],
+    [37, 7, 5, 4],
+    [59, 8, 4, 3],
+    [77, 7, 4, 4],
+    [101, 8, 4, 3],
+    [119, 7, 5, 4],
+    [141, 8, 3, 3],
+    [159, 7, 4, 4],
+    [183, 8, 4, 3],
+    [201, 7, 5, 4],
+    [223, 8, 3, 3],
+    [241, 7, 4, 4],
+  ]);
+
+  fillRects(ground, 0x825e38, [[0, 11, 256, 21]]);
+  fillRects(ground, 0x6a4d30, [[0, 11, 256, 2], [0, 29, 256, 3]]);
+  fillRects(ground, 0x9b7347, [
+    [6, 15, 18, 5],
+    [31, 18, 14, 4],
+    [53, 16, 17, 5],
+    [77, 20, 12, 4],
+    [95, 15, 18, 5],
+    [121, 19, 13, 4],
+    [141, 16, 16, 5],
+    [164, 20, 13, 4],
+    [184, 15, 17, 5],
+    [209, 19, 12, 4],
+    [227, 16, 18, 5],
+    [19, 24, 16, 4],
+    [46, 23, 13, 4],
+    [71, 25, 16, 3],
+    [112, 24, 15, 4],
+    [152, 23, 13, 4],
+    [191, 25, 17, 3],
+    [231, 24, 14, 4],
+  ]);
+  fillRects(ground, 0xc69361, [
+    [10, 16, 5, 1],
+    [58, 17, 4, 1],
+    [99, 16, 5, 1],
+    [145, 17, 4, 1],
+    [188, 16, 5, 1],
+    [233, 17, 4, 1],
+    [24, 25, 4, 1],
+    [77, 26, 4, 1],
+    [118, 25, 4, 1],
+    [196, 26, 4, 1],
+  ]);
+  fillRects(ground, 0x5b4330, [
+    [26, 15, 4, 3],
+    [89, 22, 3, 2],
+    [135, 18, 3, 3],
+    [176, 24, 4, 2],
+    [219, 17, 3, 3],
+  ]);
+  fillRects(ground, 0xbcb4aa, [
+    [41, 20, 2, 2],
+    [124, 21, 2, 2],
+    [170, 18, 2, 2],
+    [247, 22, 2, 2],
+  ]);
+
+  ground.generateTexture('ground-strip', 256, 32);
+  ground.destroy();
+}
+
 function drawCarrotTexture(scene: Phaser.Scene): void {
   const carrot = scene.make.graphics();
 
@@ -535,62 +622,138 @@ function drawFinishFlagTexture(scene: Phaser.Scene): void {
   finish.destroy();
 }
 
+function drawFinishRocketTexture(scene: Phaser.Scene): void {
+  const rocket = scene.make.graphics();
+
+  fillRects(rocket, 0x6d3e32, [[48, 18, 12, 126]]);
+  fillRects(rocket, 0x8f5646, [[49, 18, 4, 126]]);
+  fillRects(rocket, 0xd8d8df, [
+    [74, 14, 24, 116],
+    [68, 26, 36, 92],
+  ]);
+  fillRects(rocket, 0xb9bcc8, [
+    [72, 18, 6, 108],
+    [92, 18, 6, 108],
+    [70, 120, 32, 10],
+  ]);
+  fillRects(rocket, 0xf14f37, [
+    [78, 8, 16, 10],
+    [68, 26, 10, 26],
+    [94, 26, 10, 26],
+    [70, 118, 12, 22],
+    [90, 118, 12, 22],
+  ]);
+  fillRects(rocket, 0xffd65f, [
+    [80, 14, 12, 4],
+    [72, 124, 8, 8],
+    [92, 124, 8, 8],
+  ]);
+  fillRects(rocket, 0x7ad1ff, [
+    [80, 38, 12, 12],
+    [78, 36, 16, 16],
+  ]);
+  fillRects(rocket, 0xdff6ff, [[82, 40, 8, 8]]);
+  fillRects(rocket, 0x3f5e8a, [[80, 38, 12, 2], [80, 48, 12, 2], [80, 40, 2, 8], [90, 40, 2, 8]]);
+  fillRects(rocket, 0xc64a3c, [[76, 72, 20, 10], [80, 84, 12, 24]]);
+  fillRects(rocket, 0xf1efe8, [[81, 85, 10, 20]]);
+  fillRects(rocket, 0xffc947, [
+    [76, 132, 20, 10],
+    [80, 142, 12, 8],
+    [84, 150, 4, 8],
+  ]);
+  fillRects(rocket, 0xff8e2b, [
+    [78, 140, 16, 10],
+    [82, 150, 8, 10],
+    [84, 160, 4, 6],
+  ]);
+  fillRects(rocket, 0xfff0a0, [[82, 144, 8, 8], [84, 152, 4, 8]]);
+  fillRects(rocket, 0x77b85a, [
+    [16, 140, 26, 6],
+    [30, 134, 18, 6],
+    [102, 140, 24, 6],
+    [94, 134, 18, 6],
+  ]);
+  fillRects(rocket, 0x4d7b35, [
+    [22, 146, 16, 4],
+    [108, 146, 14, 4],
+  ]);
+  fillRects(rocket, 0xf6d6a3, [
+    [36, 144, 4, 4],
+    [112, 142, 4, 4],
+  ]);
+
+  rocket.generateTexture('finish-rocket', 144, 176);
+  rocket.destroy();
+}
+
 export function createTextures(scene: Phaser.Scene): void {
-  if (scene.textures.exists('bunny-run-0')) {
-    return;
+  if (!scene.textures.exists('bunny-idle-0')) {
+    drawBunnyStandingFrame(scene, 'bunny-idle-0', {
+      legOffset: 0,
+      earOffset: 0,
+      bodyLift: 0,
+      armOffset: 0,
+      mouthOpen: false,
+    });
+  }
+  if (!scene.textures.exists('bunny-run-0')) {
+    drawBunnyStandingFrame(scene, 'bunny-run-0', {
+      legOffset: -2,
+      earOffset: 1,
+      bodyLift: 0,
+      armOffset: 1,
+      mouthOpen: false,
+    });
+  }
+  if (!scene.textures.exists('bunny-run-1')) {
+    drawBunnyStandingFrame(scene, 'bunny-run-1', {
+      legOffset: 2,
+      earOffset: -1,
+      bodyLift: 0,
+      armOffset: -1,
+      mouthOpen: false,
+    });
+  }
+  if (!scene.textures.exists('bunny-jump-0')) {
+    drawBunnyStandingFrame(scene, 'bunny-jump-0', {
+      legOffset: 0,
+      earOffset: -2,
+      bodyLift: -2,
+      armOffset: 1,
+      mouthOpen: false,
+    });
+  }
+  if (!scene.textures.exists('bunny-slide-0')) {
+    drawBunnySlideFrame(scene, 'bunny-slide-0');
+  }
+  if (!scene.textures.exists('bunny-finish-0')) {
+    drawBunnyStandingFrame(scene, 'bunny-finish-0', {
+      legOffset: -1,
+      earOffset: 0,
+      bodyLift: -1,
+      armOffset: -1,
+      mouthOpen: true,
+    });
+  }
+  if (!scene.textures.exists('bunny-finish-1')) {
+    drawBunnyStandingFrame(scene, 'bunny-finish-1', {
+      legOffset: 1,
+      earOffset: -1,
+      bodyLift: 0,
+      armOffset: 1,
+      mouthOpen: true,
+    });
   }
 
-  drawBunnyStandingFrame(scene, 'bunny-idle-0', {
-    legOffset: 0,
-    earOffset: 0,
-    bodyLift: 0,
-    armOffset: 0,
-    mouthOpen: false,
-  });
-  drawBunnyStandingFrame(scene, 'bunny-run-0', {
-    legOffset: -2,
-    earOffset: 1,
-    bodyLift: 0,
-    armOffset: 1,
-    mouthOpen: false,
-  });
-  drawBunnyStandingFrame(scene, 'bunny-run-1', {
-    legOffset: 2,
-    earOffset: -1,
-    bodyLift: 0,
-    armOffset: -1,
-    mouthOpen: false,
-  });
-  drawBunnyStandingFrame(scene, 'bunny-jump-0', {
-    legOffset: 0,
-    earOffset: -2,
-    bodyLift: -2,
-    armOffset: 1,
-    mouthOpen: false,
-  });
-  drawBunnySlideFrame(scene, 'bunny-slide-0');
-  drawBunnyStandingFrame(scene, 'bunny-finish-0', {
-    legOffset: -1,
-    earOffset: 0,
-    bodyLift: -1,
-    armOffset: -1,
-    mouthOpen: true,
-  });
-  drawBunnyStandingFrame(scene, 'bunny-finish-1', {
-    legOffset: 1,
-    earOffset: -1,
-    bodyLift: 0,
-    armOffset: 1,
-    mouthOpen: true,
-  });
-
-  drawPlatformTexture(scene);
-  drawGroundTexture(scene);
-  drawCarrotTexture(scene);
-  drawEasterEggTexture(scene);
-  drawCandyTexture(scene);
-  drawCloudBandTexture(scene);
-  drawHillFarTexture(scene);
-  drawHillNearTexture(scene);
-  drawFinishFlagTexture(scene);
+  if (!scene.textures.exists('platform-block')) drawPlatformTexture(scene);
+  if (!scene.textures.exists('ground-block')) drawGroundTexture(scene);
+  if (!scene.textures.exists('ground-strip')) drawGroundStripTexture(scene);
+  if (!scene.textures.exists('carrot')) drawCarrotTexture(scene);
+  if (!scene.textures.exists('easter-egg')) drawEasterEggTexture(scene);
+  if (!scene.textures.exists('candy-piece')) drawCandyTexture(scene);
+  if (!scene.textures.exists('cloud-band')) drawCloudBandTexture(scene);
+  if (!scene.textures.exists('hill-far')) drawHillFarTexture(scene);
+  if (!scene.textures.exists('hill-near')) drawHillNearTexture(scene);
+  if (!scene.textures.exists('finish-flag')) drawFinishFlagTexture(scene);
+  if (!scene.textures.exists('finish-rocket')) drawFinishRocketTexture(scene);
 }

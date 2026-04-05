@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { isBrowserGamepadConfirmPressed } from '../../game/input/gamepad';
-import { isWebHidConfirmPressed } from '../../game/input/webhid';
+import { isWebHidConfirmPressed, shouldPreferWebHidInput } from '../../game/input/webhid';
 import type { GameFlow } from '../../game/simulation/gameSession';
 import { BUNNY_RUN_ANIMATION_KEY } from '../boot/createBunnyRunAnimation';
 import type { SceneBridge } from '../adapters/sceneBridge';
@@ -62,7 +62,9 @@ export class MenuScene extends Phaser.Scene {
 
   update(): void {
     const keyboardPressed = Boolean(this.enterKey?.isDown || this.jumpKey?.isDown);
-    const gamepadPressed = isBrowserGamepadConfirmPressed() || isWebHidConfirmPressed();
+    const gamepadPressed = shouldPreferWebHidInput()
+      ? isWebHidConfirmPressed()
+      : isBrowserGamepadConfirmPressed() || isWebHidConfirmPressed();
     const isPressed = keyboardPressed || gamepadPressed;
 
     if (isPressed && !this.startPressed) {

@@ -56,6 +56,7 @@ type WebHidCalibrationAction = 'jump' | 'run' | 'restart' | 'pause' | 'left' | '
 interface WebHidCalibrationStep {
   action: WebHidCalibrationAction;
   label: string;
+  mode: 'button' | 'direction';
 }
 
 interface WebHidCalibrationState {
@@ -86,13 +87,13 @@ export interface WebHidDebugState {
 }
 
 const CALIBRATION_STEPS: WebHidCalibrationStep[] = [
-  { action: 'jump', label: 'A / Jump' },
-  { action: 'run', label: 'X / Sprint' },
-  { action: 'restart', label: 'Y / Restart' },
-  { action: 'pause', label: 'Start / Pause' },
-  { action: 'left', label: 'D-pad Left / Move Left' },
-  { action: 'right', label: 'D-pad Right / Move Right' },
-  { action: 'down', label: 'D-pad Down / Slide' },
+  { action: 'jump', label: 'A / Jump', mode: 'button' },
+  { action: 'run', label: 'X / Sprint', mode: 'button' },
+  { action: 'restart', label: 'Y / Restart', mode: 'button' },
+  { action: 'pause', label: 'Start / Pause', mode: 'button' },
+  { action: 'left', label: 'D-pad Left / Move Left', mode: 'direction' },
+  { action: 'right', label: 'D-pad Right / Move Right', mode: 'direction' },
+  { action: 'down', label: 'D-pad Down / Slide', mode: 'direction' },
 ];
 
 const MAX_EVENT_LOG = 10;
@@ -105,6 +106,8 @@ let activeDevice: WebHidDeviceLike | null = null;
 let activeReport: WebHidReportSignature | null = null;
 let activeSnapshot: GamepadSnapshot | null = null;
 let activeDeviceKey: string | null = null;
+let selectedDevice: WebHidDeviceLike | null = null;
+let selectedDeviceKey: string | null = null;
 let lastReportHex: string | null = null;
 let lastReportId: number | null = null;
 let lastError: string | null = null;
@@ -195,9 +198,22 @@ function cloneReport(reportId: number, bytes: Uint8Array): WebHidReportSignature
   };
 }
 
+function countBits(value: number): number {
+  let bitCount = 0;
+  let current = value & 0xff;
+
+  while (current > 0) {
+    bitCount += current & 1;
+    current >>= 1;
+  }
+
+  return bitCount;
+}
+
 function buildButtonMapping(
   pressed: WebHidReportSignature,
   released: WebHidReportSignature,
+  mode: WebHidCalibrationStep['mode'],
 ): WebHidButtonMapping | null {
   if (pressed.reportId !== released.reportId) {
     return null;
@@ -224,6 +240,30 @@ function buildButtonMapping(
 
   if (masks.length === 0) {
     return null;
+  }
+
+  if (mode === 'button') {
+    if (masks.length !== 1) {
+      return null;
+    }
+
+    const [mask] = masks;
+
+    if (!mask || countBits(mask.mask) !== 1) {
+      return null;
+    }
+  }
+
+  if (mode === 'direction') {
+    if (masks.length !== 1) {
+      return null;
+    }
+
+    const [mask] = masks;
+
+    if (!mask || countBits(mask.mask) > 4) {
+      return null;
+    }
   }
 
   return {
@@ -378,10 +418,14 @@ function applyCalibrationReport(report: WebHidReportSignature): void {
     return;
   }
 
-  const mapping = buildButtonMapping(calibrationState.pressedReport, report);
+  const mapping = buildButtonMapping(calibrationState.pressedReport, report, currentStep.mode);
 
   if (!mapping) {
-    pushEventLog(`no bit change found for ${currentStep.label}; try again`);
+    const retryHint =
+      currentStep.mode === 'button'
+        ? 'use only the face/start button and keep both sticks centered'
+        : 'use only the D-pad and keep the analog sticks centered';
+    pushEventLog(`could not isolate ${currentStep.label}; ${retryHint}`);
     calibrationState.stage = 'waiting_for_press';
     calibrationState.pressedReport = null;
     activeSnapshot = createSnapshotFromCalibration(report);
@@ -421,19 +465,23 @@ function handleInputReport(event: WebHidInputReportEventLike): void {
 }
 
 async function activateDevice(device: WebHidDeviceLike): Promise<void> {
-  activeDevice = device;
-  activeDeviceKey = deviceKey(device);
+  const nextDeviceKey = deviceKey(device);
   lastError = null;
 
-  if (!connectedDeviceKeys.has(activeDeviceKey)) {
+  if (!connectedDeviceKeys.has(nextDeviceKey)) {
     device.addEventListener?.('inputreport', handleInputReport);
-    connectedDeviceKeys.add(activeDeviceKey);
+    connectedDeviceKeys.add(nextDeviceKey);
   }
 
   if (!device.opened) {
     await device.open?.();
     pushEventLog(`opened WebHID ${device.productName ?? 'device'}`);
   }
+
+  activeDevice = device;
+  activeDeviceKey = nextDeviceKey;
+  selectedDevice = device;
+  selectedDeviceKey = nextDeviceKey;
 
   const storedMappings = loadCalibration(device);
   calibrationState = {
@@ -473,11 +521,11 @@ function installWebHidListeners(hidLike: BrowserHidLike | null = getHidLike()): 
 }
 
 async function refreshKnownWebHidDevices(hidLike: BrowserHidLike | null = getHidLike()): Promise<void> {
-  const getDevices = hidLike?.getDevices;
-
-  if (!getDevices) {
+  if (!hidLike?.getDevices || requestPending || activeDevice) {
     return;
   }
+
+  const getDevices = hidLike.getDevices.bind(hidLike);
 
   if (knownDeviceRefreshPromise) {
     return knownDeviceRefreshPromise;
@@ -487,7 +535,11 @@ async function refreshKnownWebHidDevices(hidLike: BrowserHidLike | null = getHid
     try {
       const devices = Array.from(await getDevices());
       permissionCount = devices.length;
-      const preferredDevice = devices.find((device) => isLikelyGameController(device)) ?? devices[0] ?? null;
+      const preferredDevice =
+        devices.find((device) => selectedDeviceKey && deviceKey(device) === selectedDeviceKey) ??
+        devices.find((device) => isLikelyGameController(device)) ??
+        devices[0] ??
+        null;
 
       if (!preferredDevice) {
         return;
@@ -530,10 +582,16 @@ export async function requestWebHidController(): Promise<void> {
       return;
     }
 
+    selectedDevice = preferredDevice;
+    selectedDeviceKey = deviceKey(preferredDevice);
     pushEventLog(`selected WebHID ${preferredDevice.productName ?? 'device'}`);
     await activateDevice(preferredDevice);
   } catch (error) {
     lastError = error instanceof Error ? error.message : 'WebHID request failed';
+    if (selectedDevice && lastError === 'Failed to open the device.') {
+      lastError =
+        'Failed to open the device. Chrome saw it, but WebHID could not claim it. Disconnect and reconnect the controller, then retry.';
+    }
     pushEventLog(`WebHID request failed: ${lastError}`);
   } finally {
     requestPending = false;
@@ -565,6 +623,10 @@ export function getWebHidSnapshot(): GamepadSnapshot | null {
   installWebHidListeners();
   void refreshKnownWebHidDevices();
   return activeSnapshot;
+}
+
+export function shouldPreferWebHidInput(): boolean {
+  return Boolean(activeDevice && Object.keys(calibrationState.mappings).length > 0);
 }
 
 export function isWebHidConfirmPressed(): boolean {

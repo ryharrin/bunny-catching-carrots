@@ -9,7 +9,7 @@ import {
   type KeyboardSnapshot,
 } from '../../game/input/bindings';
 import { getBrowserGamepadSnapshot } from '../../game/input/gamepad';
-import { getWebHidSnapshot } from '../../game/input/webhid';
+import { getWebHidSnapshot, shouldPreferWebHidInput } from '../../game/input/webhid';
 import type { GameFlow, GameSession } from '../../game/simulation/gameSession';
 import type { RunResult } from '../../game/simulation/gameSession';
 import type {
@@ -64,6 +64,9 @@ export class GameScene extends Phaser.Scene {
   private hillBack?: Phaser.GameObjects.TileSprite;
   private hillFront?: Phaser.GameObjects.TileSprite;
   private cloudBand?: Phaser.GameObjects.TileSprite;
+  private finishRocket?: Phaser.GameObjects.Sprite;
+  private finishGlow?: Phaser.GameObjects.Ellipse;
+  private finishRocketLaunched = false;
 
   constructor(bridge: SceneBridge, flow: GameFlow) {
     super('GameScene');
@@ -79,6 +82,9 @@ export class GameScene extends Phaser.Scene {
     this.pauseOverlayVisible = false;
     this.isSliding = false;
     this.slideDirection = 1;
+    this.finishRocket = undefined;
+    this.finishGlow = undefined;
+    this.finishRocketLaunched = false;
     this.pickups.clear();
 
     const { width, height, groundSegments, platforms, carrots, spawn, finishX, paletteIndex } =
@@ -113,7 +119,7 @@ export class GameScene extends Phaser.Scene {
     const platformGroup = this.physics.add.staticGroup();
 
     for (const segment of groundSegments) {
-      this.createSurfaceTiles(groundGroup, segment, 'ground-block');
+      this.createGroundSurface(groundGroup, segment);
     }
 
     for (const platform of platforms) {
@@ -144,7 +150,40 @@ export class GameScene extends Phaser.Scene {
 
     const finishLine = this.physics.add.staticSprite(finishX, this.session.level.groundTop, 'finish-flag');
     finishLine.setOrigin(0.5, 1);
-    finishLine.setDepth(2);
+    finishLine.setScale(1.75);
+    finishLine.setDepth(3);
+    finishLine.refreshBody();
+
+    this.finishRocket = this.add
+      .sprite(finishX + 112, this.session.level.groundTop - 8, 'finish-rocket')
+      .setOrigin(0.5, 1)
+      .setScale(1.15)
+      .setDepth(3);
+
+    this.finishGlow = this.add
+      .ellipse(finishX + 112, this.session.level.groundTop - 112, 168, 236, 0xfff0a6, 0.18)
+      .setDepth(2)
+      .setBlendMode(Phaser.BlendModes.ADD);
+
+    this.tweens.add({
+      targets: [finishLine, this.finishRocket, this.finishGlow].filter(Boolean),
+      y: '-=10',
+      duration: 920,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    this.tweens.add({
+      targets: this.finishGlow,
+      alpha: { from: 0.16, to: 0.34 },
+      scaleX: { from: 0.94, to: 1.08 },
+      scaleY: { from: 0.94, to: 1.08 },
+      duration: 980,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
 
     this.physics.add.overlap(this.player, finishLine, () => {
       this.handleFinish();
@@ -252,6 +291,25 @@ export class GameScene extends Phaser.Scene {
     this.animatePlayer();
     this.scrollBackground();
     this.publishHud();
+  }
+
+  private createGroundSurface(
+    group: Phaser.Physics.Arcade.StaticGroup,
+    segment: SurfaceSegment,
+  ): void {
+    const collider = group.create(
+      segment.x + segment.width / 2,
+      segment.y + segment.height / 2,
+      'ground-block',
+    );
+    collider.setDisplaySize(segment.width, segment.height);
+    collider.setAlpha(0);
+    collider.refreshBody();
+
+    this.add
+      .tileSprite(segment.x, segment.y + segment.height / 2, segment.width, segment.height, 'ground-strip')
+      .setOrigin(0, 0.5)
+      .setDepth(1);
   }
 
   private createSurfaceTiles(
@@ -369,6 +427,8 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.launchFinishRocket();
+
     const outcome = this.session.finishRun();
     const updatedHighScore = this.flow.recordScore(outcome.result.score);
     this.session.setHighScore(updatedHighScore);
@@ -407,6 +467,91 @@ export class GameScene extends Phaser.Scene {
     this.result = this.session.getResult();
     this.resultAt = this.time.now + RESULT_DELAY_MS;
     this.player.setVelocity(0, 0);
+  }
+
+  private launchFinishRocket(): void {
+    if (this.finishRocketLaunched || !this.finishRocket) {
+      return;
+    }
+
+    this.finishRocketLaunched = true;
+
+    const flameCore = this.add
+      .ellipse(this.finishRocket.x, this.finishRocket.y + 14, 24, 42, 0xffef9a, 0.92)
+      .setDepth(2)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const flameOuter = this.add
+      .ellipse(this.finishRocket.x, this.finishRocket.y + 20, 42, 76, 0xff8f2f, 0.54)
+      .setDepth(2)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const smokePuffs = Array.from({ length: 5 }, (_, index) =>
+      this.add
+        .ellipse(
+          this.finishRocket!.x + Phaser.Math.Between(-18, 18),
+          this.finishRocket!.y + 36 + index * 8,
+          26 + index * 7,
+          18 + index * 6,
+          0xd9ddd9,
+          0.42,
+        )
+        .setDepth(1),
+    );
+
+    this.tweens.add({
+      targets: this.finishRocket,
+      y: this.finishRocket.y - 520,
+      x: this.finishRocket.x + 18,
+      angle: 6,
+      duration: 1180,
+      ease: 'Cubic.easeIn',
+      onComplete: () => {
+        this.finishRocket?.destroy();
+        this.finishRocket = undefined;
+      },
+    });
+
+    this.tweens.add({
+      targets: this.finishGlow,
+      alpha: 0,
+      scaleX: 1.26,
+      scaleY: 1.18,
+      duration: 760,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        this.finishGlow?.destroy();
+        this.finishGlow = undefined;
+      },
+    });
+
+    this.tweens.add({
+      targets: [flameCore, flameOuter],
+      y: '-=480',
+      alpha: 0,
+      scaleX: 0.42,
+      scaleY: 1.34,
+      duration: 1080,
+      ease: 'Cubic.easeIn',
+      onComplete: () => {
+        flameCore.destroy();
+        flameOuter.destroy();
+      },
+    });
+
+    for (const [index, puff] of smokePuffs.entries()) {
+      this.tweens.add({
+        targets: puff,
+        y: puff.y + 34 + index * 6,
+        x: puff.x + Phaser.Math.Between(-20, 20),
+        alpha: 0,
+        scaleX: 1.5,
+        scaleY: 1.7,
+        duration: 620 + index * 90,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          puff.destroy();
+        },
+      });
+    }
   }
 
   debugForceFinish(): void {
@@ -464,10 +609,11 @@ export class GameScene extends Phaser.Scene {
     const browserSnapshot: GamepadSnapshot | null = getBrowserGamepadSnapshot();
     const webHidSnapshot: GamepadSnapshot | null = getWebHidSnapshot();
 
-    return mergeActionStates(
-      getGamepadActionState(browserSnapshot),
-      getGamepadActionState(webHidSnapshot),
-    );
+    if (shouldPreferWebHidInput()) {
+      return getGamepadActionState(webHidSnapshot);
+    }
+
+    return mergeActionStates(getGamepadActionState(browserSnapshot), getGamepadActionState(webHidSnapshot));
   }
 
   private animatePlayer(): void {
