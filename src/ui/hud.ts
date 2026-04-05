@@ -12,6 +12,7 @@ export class HudController {
   private readonly overlayRoot: HTMLElement;
   private readonly bridge: SceneBridge;
   private readonly controllerDebugRoot: HTMLElement;
+  private lastControllerDebugMarkup = '';
 
   constructor(
     hudRoot: HTMLElement,
@@ -46,7 +47,7 @@ export class HudController {
     const gamepadDebug = getBrowserGamepadDebugState();
     const webHidDebug = getWebHidDebugState();
 
-    this.controllerDebugRoot.innerHTML = `
+    const markup = `
       <h2 class="controller-debug__title">Controller Debug</h2>
       <div class="controller-debug__section">
         <div class="controller-debug__section-title">Gamepad API</div>
@@ -141,6 +142,13 @@ export class HudController {
         <div class="controller-debug__hint">${webHidDebug.lastReportHex ? `report ${webHidDebug.lastReportId ?? 0}: ${webHidDebug.lastReportHex}` : webHidDebug.error ?? 'no input report captured yet'}</div>
       </div>
     `;
+
+    if (markup === this.lastControllerDebugMarkup) {
+      return;
+    }
+
+    this.lastControllerDebugMarkup = markup;
+    this.controllerDebugRoot.innerHTML = markup;
 
     const connectButton = this.controllerDebugRoot.querySelector<HTMLButtonElement>('[data-testid="webhid-connect-button"]');
     connectButton?.addEventListener('click', () => {
