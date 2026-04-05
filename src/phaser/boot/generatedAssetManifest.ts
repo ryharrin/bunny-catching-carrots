@@ -11,6 +11,7 @@ import cloudBand from '../../assets/generated/cloud-band.png';
 import easterEgg from '../../assets/generated/easter-egg.png';
 import finishFlag from '../../assets/generated/finish-flag.png';
 import groundBlock from '../../assets/generated/ground-block.png';
+import groundStrip from '../../assets/generated/ground-strip.png';
 import hillFar from '../../assets/generated/hill-far.png';
 import hillNear from '../../assets/generated/hill-near.png';
 import platformBlock from '../../assets/generated/platform-block.png';
@@ -29,6 +30,7 @@ export const generatedAssetManifest = {
   'easter-egg': easterEgg,
   'finish-flag': finishFlag,
   'ground-block': groundBlock,
+  'ground-strip': groundStrip,
   'hill-far': hillFar,
   'hill-near': hillNear,
   'platform-block': platformBlock,

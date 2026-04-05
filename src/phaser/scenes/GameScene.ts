@@ -307,8 +307,9 @@ export class GameScene extends Phaser.Scene {
     collider.refreshBody();
 
     this.add
-      .tileSprite(segment.x, segment.y + segment.height / 2, segment.width, segment.height, 'ground-strip')
+      .image(segment.x, segment.y + segment.height / 2, 'ground-strip')
       .setOrigin(0, 0.5)
+      .setDisplaySize(segment.width, segment.height)
       .setDepth(1);
   }
 
