@@ -263,8 +263,9 @@ test.describe('Bunny Catching Carrots e2e', () => {
 
     await expect(page.getByTestId('score-value')).not.toHaveText('0');
 
-    await page.keyboard.press('Escape');
+    await setFakeGamepadButton(page, 9, true);
     await expect(page.getByTestId('pause-overlay')).toBeVisible();
+    await setFakeGamepadButton(page, 9, false);
 
     await setFakeGamepadButton(page, 3, true);
     await expect(page.getByTestId('controller-debug')).toContainText('Y Restart');
