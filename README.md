@@ -42,7 +42,7 @@ npm run build
 
 ## Deployment
 
-The site is built and deployed to GitHub Pages from GitHub Actions whenever `main` is updated. The Vite base path is derived automatically from the `GITHUB_REPOSITORY` environment variable inside CI.
+The site is built from GitHub Actions whenever `main` is updated, then the workflow force-pushes the built output to the `gh-pages` branch for GitHub Pages to publish. The Vite base path is derived automatically from the `GITHUB_REPOSITORY` environment variable inside CI.
 
 ## Test Layers
 
