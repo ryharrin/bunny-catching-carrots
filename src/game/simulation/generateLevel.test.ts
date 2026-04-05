@@ -19,6 +19,25 @@ describe('generateLevel', () => {
     expect(level.platforms.length).toBeGreaterThan(8);
   });
 
+  it('marks every tenth pickup as a 20-point easter egg', () => {
+    const level = generateLevel(7);
+    const eggPickups = level.carrots.filter((pickup) => pickup.kind === 'easter_egg');
+
+    expect(eggPickups.length).toBe(Math.floor(level.carrots.length / 10));
+
+    for (const pickup of eggPickups) {
+      expect(pickup.points).toBe(20);
+    }
+
+    for (const [index, pickup] of level.carrots.entries()) {
+      const expectedKind = (index + 1) % 10 === 0 ? 'easter_egg' : 'carrot';
+      const expectedPoints = expectedKind === 'easter_egg' ? 20 : 1;
+
+      expect(pickup.kind).toBe(expectedKind);
+      expect(pickup.points).toBe(expectedPoints);
+    }
+  });
+
   it('keeps platforms within a reachable jump band above the ground', () => {
     const level = generateLevel(11);
 

@@ -9,18 +9,24 @@ import {
 } from '../../game/input/bindings';
 import type { GameFlow, GameSession } from '../../game/simulation/gameSession';
 import type { RunResult } from '../../game/simulation/gameSession';
-import type { SurfaceSegment } from '../../game/simulation/generateLevel';
+import type {
+  CollectiblePickup,
+  PickupKind,
+  SurfaceSegment,
+} from '../../game/simulation/generateLevel';
 import type { SceneBridge } from '../adapters/sceneBridge';
 
-const PLAYER_SPEED = 235;
+const PLAYER_SPEED = 265;
 const PLAYER_JUMP_VELOCITY = -760;
 const RESULT_DELAY_MS = 1250;
 const STANDING_BODY = { width: 26, height: 42, offsetX: 12, offsetY: 20 };
-const DUCKING_BODY = { width: 26, height: 28, offsetX: 12, offsetY: 34 };
-const DUCK_SPEED_MULTIPLIER = 0.62;
+const SLIDING_BODY = { width: 26, height: 28, offsetX: 12, offsetY: 34 };
+const SLIDE_SPEED = 335;
+const PLAYER_SCALE = 1.72;
 
-interface CarrotSprite extends Phaser.Physics.Arcade.Sprite {
-  carrotId: string;
+interface PickupSprite extends Phaser.Physics.Arcade.Sprite {
+  pickupId: string;
+  pickupKind: PickupKind;
 }
 
 export class GameScene extends Phaser.Scene {
@@ -28,11 +34,12 @@ export class GameScene extends Phaser.Scene {
   private readonly flow: GameFlow;
   private session!: GameSession;
   private player!: Phaser.Physics.Arcade.Sprite;
-  private carrots = new Map<string, CarrotSprite>();
+  private pickups = new Map<string, PickupSprite>();
   private inputTracker = new InputFrameTracker();
   private resultAt: number | null = null;
   private pauseOverlayVisible = false;
-  private isDucking = false;
+  private isSliding = false;
+  private slideDirection = 1;
   private result?: RunResult;
   private keyboard?: {
     left: Phaser.Input.Keyboard.Key;
@@ -63,48 +70,51 @@ export class GameScene extends Phaser.Scene {
     this.resultAt = null;
     this.result = undefined;
     this.pauseOverlayVisible = false;
-    this.isDucking = false;
-    this.carrots.clear();
+    this.isSliding = false;
+    this.slideDirection = 1;
+    this.pickups.clear();
 
     const { width, height, groundSegments, platforms, carrots, spawn, finishX, paletteIndex } =
       this.session.level;
 
     this.physics.world.setBounds(0, 0, width, height);
     this.cameras.main.setBounds(0, 0, width, height);
-    this.cameras.main.setBackgroundColor('#7ec7ff');
+    this.cameras.main.setBackgroundColor('#8ec4e4');
 
-    this.cloudBand = this.add.tileSprite(0, 110, width, 180, 'cloud').setOrigin(0, 0.5);
-    this.cloudBand.setTileScale(0.85, 0.85).setAlpha(0.9);
-    this.hillBack = this.add.tileSprite(0, 440, width, 140, 'hill').setOrigin(0, 0.5);
-    this.hillBack.setTileScale(0.8, 0.9).setTint(0x6ec36a, 0x6ec36a, 0x84d87b, 0x84d87b);
-    this.hillFront = this.add.tileSprite(0, 520, width, 180, 'hill').setOrigin(0, 0.5);
-    this.hillFront.setTileScale(1, 1).setTint(0x4fa04b, 0x4fa04b, 0x64bf53, 0x64bf53);
+    this.cloudBand = this.add.tileSprite(0, 116, width, 118, 'cloud-band').setOrigin(0, 0.5);
+    this.cloudBand.setTileScale(0.84, 0.84).setAlpha(0.58);
+    this.hillBack = this.add.tileSprite(0, 452, width, 132, 'hill-far').setOrigin(0, 0.5);
+    this.hillBack.setTileScale(0.86, 0.86).setAlpha(0.84);
+    this.hillFront = this.add.tileSprite(0, 534, width, 176, 'hill-near').setOrigin(0, 0.5);
+    this.hillFront.setTileScale(0.96, 0.96);
 
     if (paletteIndex === 1) {
-      this.cameras.main.setBackgroundColor('#88d1ff');
-      this.hillBack.setTint(0x66b56d, 0x66b56d, 0x87d27a, 0x87d27a);
-      this.hillFront.setTint(0x4b9a4b, 0x4b9a4b, 0x71c65d, 0x71c65d);
+      this.cameras.main.setBackgroundColor('#95c8e5');
+      this.cloudBand.setTint(0xecf4fa);
+      this.hillBack.setTint(0xe4efe1);
+      this.hillFront.setTint(0xf0f6e5);
     }
 
     if (paletteIndex === 2) {
-      this.cameras.main.setBackgroundColor('#91d6ff');
-      this.hillBack.setTint(0x70bd7c, 0x70bd7c, 0x98db8c, 0x98db8c);
-      this.hillFront.setTint(0x4b9650, 0x4b9650, 0x66bf5e, 0x66bf5e);
+      this.cameras.main.setBackgroundColor('#a2cae4');
+      this.cloudBand.setTint(0xf8f1ea);
+      this.hillBack.setTint(0xebefe0);
+      this.hillFront.setTint(0xf4eddc);
     }
 
     const groundGroup = this.physics.add.staticGroup();
     const platformGroup = this.physics.add.staticGroup();
 
     for (const segment of groundSegments) {
-      this.createSurfaceTiles(groundGroup, segment);
+      this.createSurfaceTiles(groundGroup, segment, 'ground-block');
     }
 
     for (const platform of platforms) {
-      this.createSurfaceSprite(platformGroup, platform);
+      this.createSurfaceTiles(platformGroup, platform, 'platform-block');
     }
 
     this.player = this.physics.add.sprite(spawn.x, spawn.y, 'bunny-idle-0');
-    this.player.setScale(1.7);
+    this.player.setScale(PLAYER_SCALE);
     this.player.setCollideWorldBounds(true);
     this.applyBodySize(STANDING_BODY);
     this.player.setDepth(4);
@@ -112,23 +122,17 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player, groundGroup);
     this.physics.add.collider(this.player, platformGroup);
 
-    for (const carrot of carrots) {
-      const carrotSprite = this.physics.add.sprite(carrot.x, carrot.y, 'carrot') as CarrotSprite;
-      carrotSprite.carrotId = carrot.id;
-      const carrotBody = carrotSprite.body as Phaser.Physics.Arcade.Body;
-      carrotBody.setAllowGravity(false);
-      carrotSprite.setImmovable(true);
-      carrotSprite.setScale(1.3);
-      carrotSprite.setDepth(3);
+    for (const pickup of carrots) {
+      const pickupSprite = this.createPickupSprite(pickup);
       this.tweens.add({
-        targets: carrotSprite,
-        y: carrot.y - 8,
+        targets: pickupSprite,
+        y: pickup.y - 8,
         duration: 780,
         yoyo: true,
         repeat: -1,
         ease: 'Sine.easeInOut',
       });
-      this.carrots.set(carrot.id, carrotSprite);
+      this.pickups.set(pickup.id, pickupSprite);
     }
 
     const finishLine = this.physics.add.staticSprite(finishX, this.session.level.groundTop, 'finish-flag');
@@ -139,14 +143,14 @@ export class GameScene extends Phaser.Scene {
       this.handleFinish();
     });
 
-    for (const carrotSprite of this.carrots.values()) {
-      this.physics.add.overlap(this.player, carrotSprite, () => {
-        this.collectCarrot(carrotSprite);
+    for (const pickupSprite of this.pickups.values()) {
+      this.physics.add.overlap(this.player, pickupSprite, () => {
+        this.collectPickup(pickupSprite);
       });
     }
 
-    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-    this.cameras.main.setLerp(0.12, 0.12);
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
+    this.cameras.main.setLerp(0.18, 0.18);
     this.cameras.main.setDeadzone(180, 120);
 
     if (this.input.keyboard) {
@@ -199,17 +203,23 @@ export class GameScene extends Phaser.Scene {
     }
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
-    const wantsDuck = inputFrame.duck && (body.blocked.down || body.touching.down);
-    this.updateDuckState(wantsDuck);
+    const wantsSlide = inputFrame.duck && (body.blocked.down || body.touching.down);
     const move = Phaser.Math.Clamp(inputFrame.move, -1, 1);
-    const speedMultiplier = this.isDucking ? DUCK_SPEED_MULTIPLIER : 1;
-    this.player.setVelocityX(move * PLAYER_SPEED * speedMultiplier);
 
     if (move !== 0) {
       this.player.setFlipX(move < 0);
+      this.slideDirection = move < 0 ? -1 : 1;
     }
 
-    if (inputFrame.jumpPressed && !this.isDucking && (body.blocked.down || body.touching.down)) {
+    this.updateSlideState(wantsSlide, move);
+
+    if (this.isSliding) {
+      this.player.setVelocityX(this.slideDirection * SLIDE_SPEED);
+    } else {
+      this.player.setVelocityX(move * PLAYER_SPEED);
+    }
+
+    if (inputFrame.jumpPressed && !this.isSliding && (body.blocked.down || body.touching.down)) {
       this.player.setVelocityY(PLAYER_JUMP_VELOCITY);
     }
 
@@ -222,38 +232,111 @@ export class GameScene extends Phaser.Scene {
   private createSurfaceTiles(
     group: Phaser.Physics.Arcade.StaticGroup,
     segment: SurfaceSegment,
+    textureKey: string,
   ): void {
     const tileWidth = 64;
     const tileCount = Math.ceil(segment.width / tileWidth);
 
     for (let index = 0; index < tileCount; index += 1) {
-      const x = segment.x + index * tileWidth + tileWidth / 2;
-      const tile = group.create(x, segment.y + segment.height / 2, 'platform-block');
-      tile.setDisplaySize(tileWidth, segment.height).refreshBody();
+      const remainingWidth = segment.width - index * tileWidth;
+      const currentTileWidth = Math.min(tileWidth, remainingWidth);
+      const x = segment.x + index * tileWidth + currentTileWidth / 2;
+      const tile = group.create(x, segment.y + segment.height / 2, textureKey);
+      tile.setDisplaySize(currentTileWidth, segment.height).refreshBody();
     }
   }
 
-  private createSurfaceSprite(
-    group: Phaser.Physics.Arcade.StaticGroup,
-    segment: SurfaceSegment,
-  ): void {
-    const platform = group.create(
-      segment.x + segment.width / 2,
-      segment.y + segment.height / 2,
-      'platform-block',
-    );
-    platform.setDisplaySize(segment.width, segment.height).refreshBody();
+  private createPickupSprite(pickup: CollectiblePickup): PickupSprite {
+    const textureKey = pickup.kind === 'easter_egg' ? 'easter-egg' : 'carrot';
+    const pickupSprite = this.physics.add.sprite(pickup.x, pickup.y, textureKey) as PickupSprite;
+    pickupSprite.pickupId = pickup.id;
+    pickupSprite.pickupKind = pickup.kind;
+    const pickupBody = pickupSprite.body as Phaser.Physics.Arcade.Body;
+    pickupBody.setAllowGravity(false);
+    pickupSprite.setImmovable(true);
+    pickupSprite.setScale(pickup.kind === 'easter_egg' ? 1.45 : 1.3);
+    pickupSprite.setDepth(3);
+    return pickupSprite;
   }
 
-  private collectCarrot(carrotSprite: CarrotSprite): void {
-    if (!carrotSprite.active) {
+  private collectPickup(pickupSprite: PickupSprite): void {
+    if (!pickupSprite.active) {
       return;
     }
 
-    this.session.collectCarrot(carrotSprite.carrotId);
-    carrotSprite.disableBody(true, true);
-    this.carrots.delete(carrotSprite.carrotId);
+    this.session.collectCarrot(pickupSprite.pickupId);
+    pickupSprite.disableBody(true, true);
+    this.pickups.delete(pickupSprite.pickupId);
     this.publishHud();
+  }
+
+  private burstEasterEgg(eggSprite: PickupSprite): void {
+    this.tweens.add({
+      targets: eggSprite,
+      scaleX: eggSprite.scaleX * 1.2,
+      scaleY: eggSprite.scaleY * 0.88,
+      angle: this.player.flipX ? -10 : 10,
+      duration: 130,
+      yoyo: true,
+      ease: 'Quad.easeInOut',
+      onComplete: () => {
+        const burstX = eggSprite.x;
+        const burstY = eggSprite.y;
+
+        this.spawnCandyBurst(burstX, burstY);
+        this.tweens.add({
+          targets: eggSprite,
+          alpha: 0,
+          scale: eggSprite.scale * 1.35,
+          duration: 180,
+          ease: 'Quad.easeOut',
+          onComplete: () => {
+            eggSprite.destroy();
+          },
+        });
+      },
+    });
+  }
+
+  private spawnCandyBurst(originX: number, originY: number): void {
+    const candyColors = [0xff7aa2, 0x6cc7ff, 0xffc857, 0x7bd88f, 0xf28dff, 0xff8f5a];
+    const burstCount = 7;
+
+    for (let index = 0; index < burstCount; index += 1) {
+      const candy = this.add.sprite(originX, originY - 4, 'candy-piece');
+      candy.setDepth(5);
+      candy.setScale(0.5 + Math.random() * 0.18);
+      candy.setTint(candyColors[index % candyColors.length]);
+
+      const travelX =
+        originX + Phaser.Math.Between(-72, 72) + (this.player.flipX ? -18 : 18);
+      const travelY = originY - Phaser.Math.Between(34, 92);
+      const settleY = originY + Phaser.Math.Between(30, 78);
+      const angle = Phaser.Math.Between(-180, 180);
+
+      this.tweens.add({
+        targets: candy,
+        x: travelX,
+        y: travelY,
+        angle,
+        alpha: 0.94,
+        duration: 220,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          this.tweens.add({
+            targets: candy,
+            y: settleY,
+            alpha: 0,
+            angle: angle + Phaser.Math.Between(-80, 80),
+            duration: 320,
+            ease: 'Quad.easeIn',
+            onComplete: () => {
+              candy.destroy();
+            },
+          });
+        },
+      });
+    }
   }
 
   private handleFinish(): void {
@@ -266,15 +349,21 @@ export class GameScene extends Phaser.Scene {
     this.session.setHighScore(updatedHighScore);
 
     for (const carrotId of outcome.remainingCarrotIds) {
-      const carrotSprite = this.carrots.get(carrotId);
+      const carrotSprite = this.pickups.get(carrotId);
 
       if (!carrotSprite) {
         continue;
       }
 
-      this.carrots.delete(carrotId);
+      this.pickups.delete(carrotId);
       const carrotBody = carrotSprite.body as Phaser.Physics.Arcade.Body;
       carrotBody.enable = false;
+
+      if (carrotSprite.pickupKind === 'easter_egg') {
+        this.burstEasterEgg(carrotSprite);
+        continue;
+      }
+
       this.tweens.add({
         targets: carrotSprite,
         x: this.player.x + (this.player.flipX ? -18 : 18),
@@ -302,8 +391,8 @@ export class GameScene extends Phaser.Scene {
   debugCollectCarrots(count = 1): number {
     let collected = 0;
 
-    for (const carrotSprite of this.carrots.values()) {
-      this.collectCarrot(carrotSprite);
+    for (const carrotSprite of this.pickups.values()) {
+      this.collectPickup(carrotSprite);
       collected += 1;
 
       if (collected >= count) {
@@ -370,8 +459,8 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.isDucking) {
-      this.player.setTexture('bunny-duck-0');
+    if (this.isSliding) {
+      this.player.setTexture('bunny-slide-0');
       return;
     }
 
@@ -420,26 +509,32 @@ export class GameScene extends Phaser.Scene {
     this.player.setOffset(size.offsetX, size.offsetY);
   }
 
-  private updateDuckState(wantsDuck: boolean): void {
-    if (wantsDuck) {
-      if (!this.isDucking) {
-        this.applyBodySize(DUCKING_BODY);
-        this.isDucking = true;
+  private updateSlideState(wantsSlide: boolean, move: number): void {
+    if (wantsSlide) {
+      if (!this.isSliding) {
+        if (move !== 0) {
+          this.slideDirection = move < 0 ? -1 : 1;
+        } else {
+          this.slideDirection = this.player.flipX ? -1 : 1;
+        }
+
+        this.applyBodySize(SLIDING_BODY);
+        this.isSliding = true;
       }
       return;
     }
 
-    if (!this.isDucking || !this.canStandUp()) {
+    if (!this.isSliding || !this.canStandUp()) {
       return;
     }
 
     this.applyBodySize(STANDING_BODY);
-    this.isDucking = false;
+    this.isSliding = false;
   }
 
   private canStandUp(): boolean {
     const body = this.player.body as Phaser.Physics.Arcade.Body;
-    const headroomHeight = STANDING_BODY.height - DUCKING_BODY.height;
+    const headroomHeight = STANDING_BODY.height - SLIDING_BODY.height;
     const headroom = {
       left: body.x,
       right: body.x + body.width,

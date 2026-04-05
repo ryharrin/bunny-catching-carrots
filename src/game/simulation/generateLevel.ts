@@ -6,10 +6,14 @@ export interface SurfaceSegment {
   height: number;
 }
 
-export interface CarrotPickup {
+export type PickupKind = 'carrot' | 'easter_egg';
+
+export interface CollectiblePickup {
   id: string;
   x: number;
   y: number;
+  kind: PickupKind;
+  points: number;
 }
 
 export interface LevelLayout {
@@ -18,7 +22,7 @@ export interface LevelLayout {
   height: number;
   groundSegments: SurfaceSegment[];
   platforms: SurfaceSegment[];
-  carrots: CarrotPickup[];
+  carrots: CollectiblePickup[];
   spawn: {
     x: number;
     y: number;
@@ -54,7 +58,7 @@ export function generateLevel(seed: number): LevelLayout {
   const rng = createRng(seed);
   const finishX = LEVEL_WIDTH - FINISH_OFFSET;
   const platforms: SurfaceSegment[] = [];
-  const carrots: CarrotPickup[] = [];
+  const carrots: CollectiblePickup[] = [];
 
   const addCarrotCluster = (baseX: number, y: number, count: number, spacing: number): void => {
     for (let index = 0; index < count; index += 1) {
@@ -64,10 +68,15 @@ export function generateLevel(seed: number): LevelLayout {
         continue;
       }
 
+      const pickupNumber = carrots.length + 1;
+      const isEgg = pickupNumber % 10 === 0;
+
       carrots.push({
         id: `carrot-${carrots.length + 1}`,
         x,
         y,
+        kind: isEgg ? 'easter_egg' : 'carrot',
+        points: isEgg ? 20 : 1,
       });
     }
   };

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { createTextures } from '../boot/createTextures';
+import { generatedAssetManifest } from '../boot/generatedAssetManifest';
 import type { SceneBridge } from '../adapters/sceneBridge';
 
 export class BootScene extends Phaser.Scene {
@@ -8,6 +9,12 @@ export class BootScene extends Phaser.Scene {
   constructor(bridge: SceneBridge) {
     super('BootScene');
     this.bridge = bridge;
+  }
+
+  preload(): void {
+    for (const [key, assetUrl] of Object.entries(generatedAssetManifest)) {
+      this.load.image(key, assetUrl);
+    }
   }
 
   create(): void {

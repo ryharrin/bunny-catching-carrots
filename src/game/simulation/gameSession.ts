@@ -27,6 +27,7 @@ export class GameSession {
   readonly level: LevelLayout;
 
   private readonly collectedCarrotIds = new Set<string>();
+  private readonly pickupPoints = new Map<string, number>();
   private elapsedMs = 0;
   private finished = false;
   private finishBonus = 0;
@@ -35,6 +36,10 @@ export class GameSession {
   constructor(level: LevelLayout, highScore: number) {
     this.level = level;
     this.highScore = highScore;
+
+    for (const pickup of level.carrots) {
+      this.pickupPoints.set(pickup.id, pickup.points);
+    }
   }
 
   tick(deltaMs: number): void {
@@ -65,7 +70,10 @@ export class GameSession {
       .map((carrot) => carrot.id)
       .filter((carrotId) => !this.collectedCarrotIds.has(carrotId));
 
-    this.finishBonus = remainingCarrotIds.length;
+    this.finishBonus = remainingCarrotIds.reduce(
+      (total, pickupId) => total + (this.pickupPoints.get(pickupId) ?? 0),
+      0,
+    );
     this.finished = true;
 
     return {
@@ -79,7 +87,13 @@ export class GameSession {
   }
 
   getScore(): number {
-    return this.collectedCarrotIds.size;
+    let score = 0;
+
+    for (const pickupId of this.collectedCarrotIds) {
+      score += this.pickupPoints.get(pickupId) ?? 0;
+    }
+
+    return score;
   }
 
   getHudState(): HudState {

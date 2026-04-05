@@ -3,7 +3,7 @@ import { generateLevel } from './generateLevel';
 import { GameFlow, GameSession } from './gameSession';
 
 describe('GameSession', () => {
-  it('tracks carrot collection as score', () => {
+  it('tracks pickup values as score', () => {
     const level = generateLevel(1);
     const session = new GameSession(level, 0);
 
@@ -11,6 +11,19 @@ describe('GameSession', () => {
     session.collectCarrot(level.carrots[1].id);
 
     expect(session.getHudState().score).toBe(2);
+  });
+
+  it('awards 20 points for an easter egg pickup', () => {
+    const level = generateLevel(1);
+    const session = new GameSession(level, 0);
+    const eggPickup = level.carrots.find((pickup) => pickup.kind === 'easter_egg');
+
+    expect(eggPickup).toBeDefined();
+
+    session.collectCarrot(eggPickup!.id);
+
+    expect(session.getHudState().score).toBe(20);
+    expect(session.getHudState().carrotsCollected).toBe(1);
   });
 
   it('keeps the run score intact and reports leftovers as a finish bonus', () => {
@@ -21,8 +34,10 @@ describe('GameSession', () => {
 
     const outcome = session.finishRun();
 
-    expect(outcome.result.score).toBe(1);
-    expect(outcome.result.finishBonus).toBe(level.carrots.length - 1);
+    const remainingPoints = level.carrots.slice(1).reduce((total, pickup) => total + pickup.points, 0);
+
+    expect(outcome.result.score).toBe(level.carrots[0].points);
+    expect(outcome.result.finishBonus).toBe(remainingPoints);
     expect(outcome.remainingCarrotIds).toHaveLength(level.carrots.length - 1);
   });
 
@@ -34,8 +49,10 @@ describe('GameSession', () => {
       session.collectCarrot(carrot.id);
     }
 
-    expect(session.getHudState().score).toBe(6);
-    expect(session.getHudState().highScore).toBe(6);
+    const collectedPoints = level.carrots.slice(0, 6).reduce((total, pickup) => total + pickup.points, 0);
+
+    expect(session.getHudState().score).toBe(collectedPoints);
+    expect(session.getHudState().highScore).toBe(collectedPoints);
   });
 
   it('updates the stored high score only when a run beats the current best', () => {

@@ -72,7 +72,7 @@ export class HudController {
             </div>
             <div class="overlay__controls">
               <span class="overlay__hint">Press Enter, Space, or Xbox A to start</span>
-              <span>Move with arrows or WASD. Duck with Down, S, or Xbox D-pad Down.</span>
+              <span>Move with arrows or WASD. Slide with Down, S, or Xbox D-pad Down.</span>
               <span>Jump with Space, W, Z, Up, or Xbox A.</span>
             </div>
           </article>
