@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getActivePad } from '../../game/input/gamepad';
 import type { GameFlow } from '../../game/simulation/gameSession';
 import type { SceneBridge } from '../adapters/sceneBridge';
 
@@ -23,7 +24,7 @@ export class MenuScene extends Phaser.Scene {
     this.add.image(240, 130, 'cloud').setScale(1.15);
     this.add.image(910, 180, 'cloud').setScale(1.1);
     this.add.image(1040, 110, 'cloud').setScale(0.85);
-    this.add.image(170, 580, 'platform-block').setDisplaySize(340, 70).setTint(0x825225);
+    this.add.image(170, 608, 'ground-block').setDisplaySize(360, 96);
     this.add.image(170, 510, 'bunny-run-0').setScale(2.4);
     this.add.image(260, 470, 'carrot').setScale(2.1);
 
@@ -59,7 +60,7 @@ export class MenuScene extends Phaser.Scene {
 
   update(): void {
     const keyboardPressed = Boolean(this.enterKey?.isDown || this.jumpKey?.isDown);
-    const pad = this.input.gamepad?.getPad(0);
+    const pad = getActivePad(this.input.gamepad);
     const gamepadPressed = Boolean(pad?.buttons[0]?.pressed || pad?.buttons[9]?.pressed);
     const isPressed = keyboardPressed || gamepadPressed;
 

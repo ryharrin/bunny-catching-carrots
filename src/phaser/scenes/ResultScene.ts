@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getActivePad } from '../../game/input/gamepad';
 import type { RunResult } from '../../game/simulation/gameSession';
 import type { SceneBridge } from '../adapters/sceneBridge';
 
@@ -23,8 +24,8 @@ export class ResultScene extends Phaser.Scene {
     this.add.tileSprite(640, 588, 1700, 290, 'hill').setTint(0x6fb857);
     this.add.image(300, 180, 'cloud').setScale(1.1);
     this.add.image(950, 150, 'cloud').setScale(0.95);
-    this.add.image(180, 585, 'platform-block').setDisplaySize(360, 72).setTint(0x825225);
-    this.add.image(1060, 585, 'platform-block').setDisplaySize(360, 72).setTint(0x825225);
+    this.add.image(180, 612, 'ground-block').setDisplaySize(360, 96);
+    this.add.image(1060, 612, 'ground-block').setDisplaySize(360, 96);
     this.add.image(240, 520, 'bunny-finish-1').setScale(2.6);
     this.add.image(1040, 510, 'carrot').setScale(2.4);
 
@@ -42,7 +43,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   update(): void {
-    const pad = this.input.gamepad?.getPad(0);
+    const pad = getActivePad(this.input.gamepad);
     const isPressed = Boolean(this.enterKey?.isDown || pad?.buttons[0]?.pressed || pad?.buttons[9]?.pressed);
 
     if (isPressed && !this.restartPressed) {

@@ -7,6 +7,7 @@ import {
   type GamepadSnapshot,
   type KeyboardSnapshot,
 } from '../../game/input/bindings';
+import { getActivePad } from '../../game/input/gamepad';
 import type { GameFlow, GameSession } from '../../game/simulation/gameSession';
 import type { RunResult } from '../../game/simulation/gameSession';
 import type {
@@ -432,7 +433,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private getGamepadState(): ReturnType<typeof getGamepadActionState> {
-    const pad = this.input.gamepad?.getPad(0);
+    const pad = getActivePad(this.input.gamepad);
 
     if (!pad) {
       return getGamepadActionState(null);

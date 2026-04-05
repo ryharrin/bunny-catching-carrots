@@ -61,8 +61,8 @@ export class HudController {
             <p class="overlay__eyebrow">A Fredda Rose Game Studio Production</p>
             <h1 class="overlay__title">Catch every carrot you can.</h1>
             <p class="overlay__body">
-              Each run is a one-minute side-scrolling sprint with safe ground, sky platforms, and a
-              finish-line feast. Reach the banner and your bunny gulps every leftover carrot.
+              Each run is a one-minute side-scrolling sprint with safe ground, floating carrot arcs,
+              and a finish-line feast. Reach the banner and your bunny gulps every leftover carrot.
             </p>
             <div class="overlay__stats">
               <div class="overlay__stat">

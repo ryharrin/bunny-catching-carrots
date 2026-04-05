@@ -16,7 +16,7 @@ describe('generateLevel', () => {
     expect(level.finishX).toBeLessThan(level.width);
     expect(level.finishX).toBeGreaterThan(0);
     expect(level.carrots.length).toBeGreaterThan(40);
-    expect(level.platforms.length).toBeGreaterThan(8);
+    expect(level.platforms).toHaveLength(0);
   });
 
   it('marks every tenth pickup as a 20-point easter egg', () => {
@@ -38,14 +38,17 @@ describe('generateLevel', () => {
     }
   });
 
-  it('keeps platforms within a reachable jump band above the ground', () => {
+  it('places floating carrots within a reachable jump band above the ground', () => {
     const level = generateLevel(11);
+    const airbornePickups = level.carrots.filter((pickup) => pickup.y < level.groundTop - 60);
 
-    for (const platform of level.platforms) {
-      const lift = level.groundTop - platform.y;
+    expect(airbornePickups.length).toBeGreaterThan(12);
 
-      expect(lift).toBeGreaterThanOrEqual(120);
-      expect(lift).toBeLessThanOrEqual(163);
+    for (const pickup of airbornePickups) {
+      const lift = level.groundTop - pickup.y;
+
+      expect(lift).toBeGreaterThanOrEqual(90);
+      expect(lift).toBeLessThanOrEqual(190);
     }
   });
 });

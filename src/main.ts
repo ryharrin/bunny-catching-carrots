@@ -56,6 +56,9 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
+  input: {
+    gamepad: true,
+  },
   physics: {
     default: 'arcade',
     arcade: {
